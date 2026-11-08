@@ -107,6 +107,43 @@ not touch, and run B reports every name it used that is not in A's contract.
    `wave.enable || <new>.enable`; the shared outbox parent rule is written once under the same `||`, never twice.
    The memory of a Claude seat is unmeasured: write the two-seat phases into the rig header and the docs.
 
+## Keeping a rig up ("run it 24/7", survive deploys)
+
+A name such as "wave-forecaster dev" with no GitHub repository of that name is a rig of nix-os
+(`openrig/specs/rigs/<name>/`). Find it with `git ls-tree -r origin/main`, not in the old workspace clones (stale, and
+some are dirty): work in `git worktree add ../nix-os-<slug> -b hermes/<slug> origin/main`. "Prepare to run" means
+the supervisor, the option and the docs; sending tasks and answering a seat prompt stay out of it.
+
+Nothing restarts a rig after a deploy, a reboot or a crash, because `KillMode=control-group` ends every seat. The
+fix is a timer plus a oneshot "keeper" (not a looping service) that is idempotent, from facts read in `openrig-src`:
+
+- `rig ps --json` lists rigs with `status` (`running`, `partial`, `stopped`), `lifecycleState`, `attentionCount`,
+  `runningCount`, `isArchived`. `rig ps --nodes --rig <r> --json` adds per seat `lifecycleState` and
+  `intentionallyStopped`. `rig down` sets `intentionallyStopped` on every seat: a keeper must leave such a rig alone.
+- `rig up <rig> --existing` restores a stopped rig from its latest usable snapshot, or from current state when that
+  is eligible; otherwise it fails with "Start fresh with `rig up <spec-path>`". It refuses while any seat is live,
+  so it cannot repair `partial`. The daemon takes periodic snapshots by itself (300 s): no snapshot job is needed.
+- Keeper rules: never start a daemon (`rig status` must say "Daemon running"); skip when any other rig has
+  `runningCount > 0` (one memory budget); log `partial` and `attentionCount > 0` as warnings and change nothing; cap
+  attempts (for example 3 an hour, state in `StateDirectory`) and then fail the unit so `systemctl --failed` shows it;
+  never answer a bypass or consent prompt. Harden it like the daemon unit, with `AF_NETLINK` allowed (Node CLI).
+- Do not write two rules into the task that contradict each other. "Leave a `rig down` rig alone" plus "restart the
+  port rig when the other rig ends" cannot both hold: `rig down` marks every seat stopped on purpose, so a human
+  must run `rig up <rig> --existing` after the other rig ends. State the final behaviour in the task file once, and
+  when omp's report says the code differs from the task, make the docs and the skill text match the code and tell
+  the owner the one line he can change.
+- Prove the first-start path read-only on the live daemon before the PR: `rig up <rig> --existing --plan` (shows the
+  "no restore-usable snapshot" failure a never-started rig gives) and `rig up <spec-path> --plan` (must pass). A
+  materialized rig that never ran has no snapshot, so the keeper's fall-through to the spec is the normal first start.
+- Get the keeper script path with `nix eval --raw ...systemd.services.<unit>.serviceConfig.ExecStart` (`nix build` on
+  that string attribute fails with a string-context error) and run the fake-`rig` test against it.
+- The merge that adds it changes `openrig.nix`, so the deploy restarts the daemon and ends live seats. Say so in the PR.
+  Also list what stays with the owner: the one-time Claude Code bypass warning (`rig seat continue`), who feeds the
+  seats tasks, whether the GitHub App covers the private repo the seats clone (not checkable from here), and the
+  unit memory (`MemoryHigh` is the working limit; raising it is his call, never part of this PR).
+- An idle Claude Code seat does no work: "24/7" means alive, not busy. Say that, and that feeding it tasks is a
+  separate decision (cost on the owner's subscription).
+
 ## After the merge: the rig does not follow the spec
 
 When the owner says a runtime or field "did not change in the UI" after a merge, that is the order to fix it: do not

@@ -26,6 +26,12 @@ the owner's yes. The pattern to copy is `hermes-web.nix` on nix-os `main`
 - Secrets (auth secrets, API keys) go in an env file on the box under `/var/lib/<name>-secrets/`,
   loaded with `EnvironmentFile`; never in the module (the store is world-readable). Say in the PR
   which keys the file needs and that the service stays down or refuses to start without it.
+- Something every vhost must serve (a favicon, a security.txt): one small module that exposes a `locations`
+  set, and one line in each vhost (`locations = config.piabrota.<x>.locations // { ... }`), so a new vhost gets
+  it by the same line. Serve a third-party app's asset on the path its own HTML names (read its built
+  `index.html`); use `sub_filter` only when the app names none, because it needs the upstream
+  `Accept-Encoding` stripped. An `add_header` inside a `location` drops every header of the server block and
+  NixOS's nginx check (gixy) fails the build: repeat the standard headers in that location.
 - `MemoryMax` and `CPUQuota` or `CPUWeight` on the unit, and systemd hardening (skill
   `systemd-hardening`). A database the app needs is a real `services.postgresql` limited to that app
   only when the owner accepted it; PGX is for data you can lose.
@@ -216,6 +222,17 @@ before/after host eval (`omp-harness.md`, "Turning a module off"), and list data
 the erase commands marked destructive. The PR says it deploys and reloads Hermes.
 When the owner then reports "merged", read `gh pr view <n> --json state` again before you act:
 the state can still read OPEN, and then you say so instead of assuming.
+
+## Removing a service for good ("take it out of the repository")
+
+For "remove X and every trace" after an earlier PR replaced it. Start from `origin/main`, not from
+memory: `git grep -il <name>` and `git ls-files | grep -i <name>` show what is really left; the
+replacing PR often removed all code and only a docs section remains. If only Markdown remains, edit
+it by hand (say so), in both languages with the same headings, and keep the other sections. The
+body lists the data still on the box with the erase commands marked destructive for the owner to
+run, says the old commits keep the name (no history rewrite, no force-push), and says what stays
+because something else uses it (a DNS name, an nginx host). Offer to sweep the other repositories;
+do not do it unasked. A docs-only merge does not deploy.
 
 ## Publishing another repo's generated files at a new subdomain
 

@@ -20,6 +20,7 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
   `omp-run <name> --resume <session-id> --max-time 30m` (hermes-omp step 3). Without `omp-run`: `omp -p --mode json --no-title --resume <session-id> --max-time 30m < resume.md 2>&1 | omp-stream`.
   The id is in the `[Recovery]` line. The resume task lists what is done, what is not, the order of the rest and a time budget.
 - Ask every run to keep a DRAFT report file (`/tmp/<name>-report.md`) from the first third on and to update it. Otherwise the report is lost.
+  Also say: "write the COMPLETE final report, every table and audit verdict with its file:line, into that file BEFORE your last message". A run that put its audit only in the last chat message left a 512-byte file, and the completion notice kept just the tail: the audit was gone. When that happens, mark those audit items "not verified" in the PR body and offer an audit-only run; never rebuild the table from memory.
 - Tell omp to run slow things (builds, test suites) detached and poll their log with one short command. A `wait` on a long job is what gets killed.
 
 ## Tests that prove a fix
@@ -45,8 +46,13 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
 - Stop a run with `omp-run --stop <name>` (hermes-omp step 3), never `pkill -f <pattern>`: through the terminal tool the pattern is in the shell's own command line, so it kills the very call that runs it, and it can match another run. Only on a box without `omp-run`, kill by PID.
 - The completion notice shows only the last ~2,000 characters of the stream, and the draft report file may never have been finalized. Read the file, then re-run the cheap proofs yourself (the suite, the eval, one measurement on the real box) before you write the PR body; take the numbers from your own run.
 - Hermes may not write `.github/workflows/`: have omp write a workflow as `scripts/<name>.workflow.yml`
-  with a header telling the owner to copy it, and say so in the PR.
+  with a header telling the owner to copy it, and say so in the PR. Also write "never edit `.github/`" in
+  EVERY task file: omp adds a lint path or a test job to `ci.yml` on its own when it adds a script or a
+  test. After each run, `git status --short .github` before you commit; revert the file
+  (`git checkout -- <file>`) and give the owner the lines to add in the PR body, or the push is refused.
 - A terminal call whose cwd is a nix-os worktree loads that repo's AGENTS.md into the context: use `git -C` or `workdir` outside the repo for plain commands.
+- To count active runs before a second start, `pgrep -fa "omp -p"` also matches the terminal call's own shell snapshot (a `bash -c source ...hermes-snap...` line): that line is the check itself, not a run. Count only lines that are an `omp` process.
+- While a run edits a worktree, do not touch it (no edit, no `git add`): your change shows up in its `git diff` and in its report. Draft Markdown for the same PR in a scratch checkout of `main` or in `omp-tasks/`, and copy it in after the run ends.
 - `nix eval path:$PWD#...` works in a worktree where `git+file:` fails with 'object not found'.
 - When the owner corrects the target mid-run (for example 'I mean the main branch, not the releases'), stop the run, rewrite the task
   file (not a patch on top) and restart: a run cannot be steered. Stop it with `omp-run --stop <name>`. Only for a hand-made

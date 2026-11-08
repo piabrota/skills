@@ -106,6 +106,12 @@ controls, who edits it, when it takes effect.
   the owner asks "still running?", answer from facts: `pgrep -af bin/omp`, `ps -o etime=,rss= -p
   <pid>`, the size of the output file and `git status --short`; give the time left on the
   `--max-time` limit. Do not guess.
+- **A finished run's notice keeps only the last ~2,000 characters.** A long audit table in omp's final
+  message is cut, and the report file omp wrote at the end may be a 512-byte stub. In the task file,
+  name `omp-tasks/<name>.report.md` (inside the workspace), require omp to append each audit item
+  (OK / CHANGED / UNKNOWN with file and line) to it as it goes and to finish with the full text, and
+  read that file when the run ends. If the evidence is lost anyway, say so in the PR body and mark
+  those items unverified; never reconstruct them from a summary.
 - **A run stopped by its time limit has not reported.** `[Stopped by SIGTERM]` at `--max-time` leaves edits and no
   final report. Resume it with `omp -p --mode json --no-title --resume <session id from the Recovery line>
   --max-time 30m < <task file> 2>&1 | omp-stream`; the task file tells it what the last output showed (for

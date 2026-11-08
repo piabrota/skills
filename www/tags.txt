@@ -72,6 +72,7 @@ hermes-box-diagnosis: hermes-skill
 openrig-docs: hermes-skill
 hermes-plugin-inspection: hermes-skill
 nixpkgs-tool-research: hermes-skill
+md-to-pdf-closed-source: hermes-skill
 piabrota-owner-workflows: hermes-skill
 update-skills: hermes-skill
 smart-notes: hermes-skill
