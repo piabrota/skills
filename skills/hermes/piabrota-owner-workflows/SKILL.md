@@ -105,9 +105,9 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   unmerged: `main`, the GitHub page and DeepWiki change only after the merge, so say that in the
   first sentence and give the PR link.
 - **The deny list reads the whole command text.** Run `git add`, `git commit` and `git push
-  origin <branch>` as three separate calls, and push with no pipe, no `&&` chain and no second
-  refspec. A blocked word inside a harmless `grep` pattern blocks the call (for example `sudo`, `.env`, or the
-  name of the secrets folder, an installer word like `npx`, a Dockerfile `ENV` keyword, or `env`
+  origin <branch>` as three separate calls, and push with no pipe, no `;` or `&&` chain, no `cd`
+  prefix (set the terminal `workdir` instead) and no second refspec. A blocked word inside a harmless `grep` or `sed` pattern blocks the call (for example `sudo`, `.env`, the name of a
+  secrets file or of the secrets folder, even inside a doc sentence you are rewording with `sed`: use the `patch` tool for that edit; an installer word like `npx`, a Dockerfile `ENV` keyword, or `env`
   next to `-i` flags, which reads as dumping the environment): drop the word from the pattern, or
   search source with `search_files`, and search for the shape instead. The same holds for words inside a
   prompt string on an `omp` command line (the phrase for pushing to git trips the push rule): put
@@ -129,7 +129,9 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
 - **Verify the PR after `gh pr create`:** `gh pr view <n> --json state,headRefName,files` and
   `gh pr checks <n>`; report pending checks as pending.
 - **Never touch `.github/workflows`** (rule 2, no App permission, deny list). For a CI change,
-  see "CI speed requests" below.
+  see "CI speed requests" below. omp may edit it anyway (a lint line, a new test step): after every run
+  read `git status --short .github`, restore the file (`git checkout -- .github`) before the commit,
+  and give the owner the lines to add in the PR body.
 - **Code edits and code reviews go through omp.** Standing order of the owner: every task that
   writes or reviews code, config or scripts runs in `omp` (skill `hermes-omp`), even a one-line
   fix; you do not write code with your own file tools. You do the branch, the diff review, the
@@ -164,6 +166,10 @@ then split the real run into one PR per doc group.
   the unit" in the PR body and in chat.
 - When the owner says "same PR" for a docs change and a config change, keep one PR and put the
   deploy part first in the body.
+- A script that `hermes.nix` embeds by store path (the `kvm4-health` wrapper, the gateway wrapper) is part of the
+  `hermes-agent` and `hermes-backend` unit files: any edit of it makes the merge restart both and end the agent's
+  own runs. Compare the unit files before and after (`nix eval` of `config.systemd.units."<name>.service"`),
+  say it in the first lines of the PR body, and put such a change in its own commit.
 - Prose that contradicts a changed setting (identity file, docs in both languages, comments, the
   repo's AGENTS.md file table and rules) changes in the same PR. Grep the repo for the old claim
   (for example "Sonnet and nothing else") before you commit; it hides in `hermes.nix` comments,
@@ -188,8 +194,10 @@ To measure or reduce a CI score (code smell, lint count), load `references/code-
 For a seat that does not start (`command not found` in the pane, "runner to report ready"), load
 `references/openrig-seat-environment.md`: how OpenRig builds the pane, the fix, and the proof.
 For a runtime or spec change of a rig (shared agents, model-id form, unfree package, auth, a rig that does
-not follow its spec) or the design of a new rig, including a document or PDF rig, load
-`references/openrig-runtime-and-spec-changes.md`.
+not follow its spec), the design of a new rig, including a document or PDF rig, or "run rig X 24/7"
+(a keeper timer that restores it after a deploy), load `references/openrig-runtime-and-spec-changes.md`.
+For a rig that must serve another org's repositories with that org's bot App, or two runtimes to compare, load
+`references/rig-for-another-orgs-repos.md`.
 
 ## README, wiki and figures (docs PRs)
 
@@ -274,6 +282,11 @@ For "which DNS records do I change" or "what do I do before I merge" on a host m
 `references/host-cutover.md`: DNS checks through DNS-over-HTTPS, the one-record answer, the order
 of stacked PRs, VPS prep and cutover, and what stays unverified.
 
+## Owner-run remote commands (`just remote-restart`, health, checks)
+
+For "a just command to restart or check the services", load `references/remote-ops-recipes.md`: allow list,
+plan and prompt over SSH, restart order (agent before dashboard, own session last), thresholds, the PR text.
+
 ## Gateway unit loops, reloads, "debug yourself"
 
 For a unit that restarts without end, a background job killed after a deploy, or "use the doctor
@@ -332,4 +345,6 @@ PR (deploy first in the body) instead of listing options without a next step.
   repo's AGENTS.md into the output even when it only runs `grep`: use absolute paths, `git -C`, or
   `read_file` with an offset, and run from a neutral directory. The first `search_files` or
   `read_file` call into a directory with its own AGENTS.md loads it too (once per directory), so
-  search one file's directory, not the repo root, when you only need a line.
+  search one file's directory, not the repo root, when you only need a line. Starting `omp-run`
+  with `workdir` in the repo loads it once too: do all reads of AGENTS.md before, and do not
+  `git worktree add` from inside a dirty old clone: use `git -C <clone> worktree add ../<new> -b hermes/<slug> origin/main`.

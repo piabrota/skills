@@ -47,6 +47,19 @@ nix derivation show -r <drvPath> | grep -o '\\"baseVersion\\":\\"[^"\\]*'       
   is untested and which line to remove first if the unit fails at start.
 - `jq -e` exits 4 when the filter prints nothing, which a check script may do on success. Run the
   command the way the CI line runs it (without `-e`) before you call it a failure.
+- **Prove "option off = nothing changes"** by hashing the pieces on the branch with the option forced
+  off and on `origin/main` (baseline in a second worktree, loaded as `path:` flake). A flake attribute
+  path cannot carry `extendModules { ... }`, so write a small `.nix` file and run
+  `nix eval --impure --json --file cmp.nix`: `getFlake` both trees, `here.extendModules { modules = [
+  ({ lib, ... }: { <option> = lib.mkForce false; }) ]; }`, then compare
+  `builtins.hashString "sha256"` of `config.systemd.services.<u>.script`, `builtins.toJSON` of its
+  `serviceConfig`, `path` (map `toString`) and `config.systemd.tmpfiles.rules`; list the service names
+  that exist only on the branch (with the option on it must be just the new unit). Equal hashes are the
+  proof; say which pieces you hashed.
+- **Size and build load of the whole system, cheaply:** `nix build --dry-run .#nixosConfigurations.<host>.config.system.build.toplevel`
+  (a short "will be built" list and no "will be fetched" means the big packages are already in the
+  store), then build it and run `nix run nixpkgs#dix -- diff /run/current-system <new toplevel>` (the
+  `diff` subcommand is required; the last lines give paths and size). Put those numbers in the PR.
 - Flakes see only tracked files: `git add` moved and new files first. A `Git tree is dirty`
   warning is harmless.
 - To work on a second branch while omp edits the first, use `git worktree add ../<dir> -b

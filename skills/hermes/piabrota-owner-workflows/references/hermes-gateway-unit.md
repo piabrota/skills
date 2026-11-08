@@ -40,7 +40,13 @@ Cause: the unit's `ExecStart` is a shell wrapper, so the gateway no longer sees 
 parent. Without `--external-supervisor`, a reload (SIGUSR1) makes the gateway spawn a detached
 replacement and exit; `Restart=always` then starts a second gateway that finds the first and exits 0,
 forever. The fix is the flag in the wrapper (`hermes gateway run --external-supervisor`): the gateway
-exits 75 back to the wrapper, which turns 75 into 0, and systemd restarts it inside the unit.
+exits 75 back to the wrapper, which starts it again inside the unit. Do NOT map every 75 to 0: the real
+gateway also exits 75 when another gateway already serves the host, so a wrapper that blindly
+restarts on 75 (or hides it as 0) loops once a second. Check for a foreign live pid in `gateway.pid`
+for BOTH exit 0 and 75 when the run lasted under about 20 s, before the reload branch. Build the test
+stub from the real binary's exit codes (read `gateway/restart.py` or run the real command in a temp
+home), never from an assumed 0: a stub that exits 0 passed while the real unit looped. Write the test
+red on the old script first.
 
 After the fix merges the old detached gateway still owns the host, so the loop continues until the
 owner stops it once (`sudo -u hermes hermes gateway stop`). Tell him that sequence in the PR body
@@ -85,6 +91,16 @@ A change to the unit's `ExecStart` also changes the derivation of the web-only h
 `/hermes` page renders the unit as YAML. So the check "that host's drv equals main's" does not hold for
 a `hermes.nix` change. Prove the change is not the cause instead: evaluate a copy of the tree that has
 main's `hermes.nix`, the same way (`path:`), and compare. Say in the PR body that the public page changes.
+
+## "Two hermes processes are running": what is normal
+
+Two long-lived Hermes processes are the expected state: the gateway (`hermes gateway run
+--external-supervisor`, in `hermes-agent.service`, with its bash wrapper as parent) and the dashboard
+(`hermes dashboard`, in `hermes-backend.service`). A metrics page that groups by executable name shows
+both as "hermes". Prove it with `ps -eo pid,ppid,etimes,rss,args | grep -i [h]ermes`, `cut -d: -f3-
+/proc/<pid>/cgroup` for each, and `gateway.pid` (the pid must be the one in `hermes-agent.service`;
+`NRestarts` 0). Abnormal: a second `gateway run` outside that cgroup. A `<defunct>` python child of
+the dashboard holds no memory and is not that bug. Say which unit each process belongs to.
 
 ## A new secret in hermes.env needs a switch, then a reload
 

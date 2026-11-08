@@ -39,6 +39,29 @@ README alt text, card and both wiki pages with the figure. When the owner calls 
 the fix is a redraw by omp that looks at its own render, then your look at the PNG; do not
 re-argue the gates.
 
+## Shortening a README ("make it short, link the docs")
+
+A focused README keeps: the header block (drawing, one-line nav, badges), a one-sentence quote, a contents list,
+the address table, one configuration section per named service, 5 to 6 reproduce steps, a docs table, a related
+repositories table, credits and license. Everything else moves, word for word, into `docs/<TOPIC>.md`; nothing
+is deleted.
+- Take the layout of the owner's reference list (header, `<sub>` nav, badges, quote, `## Contents`, tables with
+  Project, Description, Stars, Last commit, Commits in 2026). Fill the related-repo numbers from the API on the day:
+  `gh api repos/<o>/<r> --jq .stargazers_count`, the last commit from `commits?per_page=1`, and the count of 2026
+  commits from the `rel="last"` page in the `Link` header of `commits?since=<Jan 1>&per_page=1`. Write the date of the numbers above the table. Match repo names to what exists (`gh api`): the owner may misspell one; say which you chose.
+- Config tables come from the module files (`mkOption` names, defaults) and from `hosts/<name>/default.nix` (values set
+  here), never from memory.
+- Before you cut a section, grep the repo for links to its anchor (`git grep -n '#every-'`, the dashboard docs page,
+  the wiki Home pages) and keep the heading text so the anchor still resolves.
+- The justfile's `figure-check` greps the README for `](docs/img/<slug>.png)` of every figure. Keep every figure as
+  at least a linked thumbnail (a `<details>` table is fine), and move only the long "how to read" cards.
+- Moved text changes its relative links: `](docs/X.md)` becomes `](X.md)`, `docs/img/` becomes `img/`,
+  `docs/archify/` becomes `archify/`. A `sed` over the moved block does it; grep the result for `](docs/`.
+- A README line that says "edit the badge by hand when the pin moves" travels with the pin table: update both
+  places, and the docs that point at the README's pin table.
+- A new doc needs a row in the repo's file table (AGENTS.md), which is near its size cap: shorten another row or
+  say in the PR body that the row was left out for size.
+
 ## Facts first, by command
 
 - Hosts: `grep -rhoE '\b[a-z0-9-]+\.piabrota\.art\b' --include=*.nix . | sort -u` in the repo; paths
