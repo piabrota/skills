@@ -81,7 +81,7 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   check `git diff --stat origin/main..HEAD` lists only your files and rerun the checks.
 - **Resolve conflicts in your own PRs yourself, without asking.** When the owner posts the PR link
   with "solve conflicts", or `gh pr view <n> --json mergeable` says CONFLICTING, fetch `main` and
-  merge it into your `hermes/*` branch (`git merge --no-edit origin/main`, no rebase, no force-push).
+  merge it into your `hermes/*` branch (`git merge --no-edit origin/main`, no rebase, no force-push). If a rebase already ran (an omp run resolved the conflicts mid-rebase), do not push it: the remote branch would need a force-push. Make a merge commit that holds the rebased tree: `git commit-tree "$R^{tree}" -p <old remote head> -p origin/main` (message on stdin), push it by hash as a fast-forward (`git push origin <sha>:refs/heads/hermes/<slug>`), and move the local branch with `git switch -C hermes/<slug> <sha>`.
   The usual cause is a sibling PR that added a row to the same `AGENTS.md` table: keep both rows,
   and for a row both changed keep your shorter wording and re-apply the other side's new clause to it (do not drop
   main's change). A merge can push `AGENTS.md` over 32,000 characters even when each side fit: run
@@ -118,7 +118,7 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   split or reword it; never look for a way around.
 - **An explicit order stands.** When the owner says "install X" or "do Y", do the work and put the
   cost and the risk in the PR body or the reply. Do not stop to ask for a "yes" he has already
-  given. Stop only for a rule that forbids the act, and then name the rule in the first sentence.
+  given. Stop only for a rule that forbids the act, and then name the rule in the first sentence. A rule from a repo's AGENTS.md (no GUI, no fonts, a size cap) is the owner's default, and he overrides it (Node, two fonts, Blender): price the exception by measurement, put it behind an option that is off by default, and build it. Do not offer the compliant route as the recommended pick.
 - **Hermes cuts a context file at 32,000 characters** and drops the middle (the log says
   `Context file ... TRUNCATED`). Keep nix-os `AGENTS.md`, `hermes/AGENTS.md` and `hermes/SOUL.md`
   under 30,000 (`wc -m`; the nix-os justfile has a `context-size` recipe). Shrink by cutting rows of the
@@ -162,7 +162,7 @@ then split the real run into one PR per doc group.
   `paths-ignore: ['**.md']`. That includes `hermes/SOUL.md`, `hermes/AGENTS.md`, `hermes/omp-append-system.md`
   and `hermes/skills/**/SKILL.md`: a PR with only those does NOT deploy, and the change reaches the box
   with the next non-Markdown deploy or a manual `deploy.yml` run on `main`. Say that in the PR body
-  and in chat. A `.nix` file, `hermes/omp.yml` or `hermes/dangerous-patterns.yaml` change deploys. Say "this merge deploys and restarts
+  and in chat. A new skill (a `SKILL.md` plus doc rows) is the same case: do not write "the deploy restarts `hermes-agent`" for it just because its folder is in `settings.skills.external_dirs`; apply this list first, then state the risk. A `.nix` file, `hermes/omp.yml` or `hermes/dangerous-patterns.yaml` change deploys. Say "this merge deploys and restarts
   the unit" in the PR body and in chat.
 - When the owner says "same PR" for a docs change and a config change, keep one PR and put the
   deploy part first in the body.
@@ -198,6 +198,8 @@ not follow its spec), the design of a new rig, including a document or PDF rig, 
 (a keeper timer that restores it after a deploy), load `references/openrig-runtime-and-spec-changes.md`.
 For a rig that must serve another org's repositories with that org's bot App, or two runtimes to compare, load
 `references/rig-for-another-orgs-repos.md`.
+For a rig or toolkit that renders media (Blender, ffmpeg, a pixel or loudness test), load
+`references/headless-media-tools.md`.
 
 ## README, wiki and figures (docs PRs)
 
@@ -229,6 +231,9 @@ feeds, wire the script into Hermes cron, and the overnight hand-over.
   avatars from `gh api apps/<slug>` and `gh api 'users/<slug>[bot]'`.
 - Pinned repositories are set only in the GitHub UI (org page, "Customize pins", up to 6 public
   repos of that org). No README edit or API call sets them: do not promise it.
+- The projects table of that profile is also the source of the cards on piabrota.art. For "add repo X
+as a card on the website", load `references/site-project-cards.md`: where the facts and the three
+locale keys live, the personal-owner field, and the mockup regeneration.
 
 ## Model routing, project surveys, service costing
 
@@ -243,9 +248,12 @@ how to give memory numbers.
 
 ## Loading skill repos into Hermes
 
-For "load the skills of repo X as commands" or a change to `settings.skills.external_dirs`, load
-`references/loading-skill-repos.md`: pin with `fetchFromGitHub`, copy an allowlist, vet each
-skill, test with a temp `HERMES_HOME`.
+For "load the skills of repo X as commands", a bare skill-repo URL with "add this in a new PR", or a
+change to `settings.skills.external_dirs`, load `references/loading-skill-repos.md`: pin with
+`fetchFromGitHub`, copy an allowlist or one skill under a category folder, vet each skill, test with
+a temp `HERMES_HOME`.
+For "create a command for yourself" (a new `/x` that stays after a deploy), load
+`references/own-skill-command.md`.
 
 ## Owner plugin requests (pirsig-notes, pirsig-videos)
 
@@ -331,6 +339,12 @@ layers (task file, per-run flags, target repo context, skill, prompt file, overl
 Sonnet, and the rules that must not loosen. The owner wants every layer visible and a way to tune
 it himself: answer with the layer table (file, who edits, when it takes effect), then offer the
 PR (deploy first in the body) instead of listing options without a next step.
+
+## SOUL.md, guardrail and reply-language edits
+
+For an order to change `hermes/SOUL.md`, the merge rule, the reply language, or any rule that the deny
+list also enforces, load `references/soul-and-guardrail-edits.md`: the approval gate on protected
+files, the layers to grep, and how to scope a loosened rule.
 
 ## Output hygiene
 

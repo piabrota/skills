@@ -19,6 +19,7 @@ Check the licence of the source before you reuse a skill.
 | `omp-long-tasks` | Made by Hermes on this box | not stated | not stated |
 | `openrig-docs` | Made by Hermes on this box | MPL-2.0 | piabrota-hermes |
 | `piabrota-owner-workflows` | Made by Hermes on this box | not stated | not stated |
+| `rbi` | Added by nix-os (skills) | MPL-2.0 | piabrota |
 | `smart-notes` | Plugin pirsig-notes | not stated | not stated |
 | `update-skills` | Made by Hermes on this box | MPL-2.0 | piabrota |
 | `video-indexer` | Plugin pirsig-videos | not stated | not stated |
