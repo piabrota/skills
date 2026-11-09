@@ -1,7 +1,13 @@
 # A YouTube video the box cannot fetch (pirsig-videos)
 
-Use when `pirsig_video_fetch` ends in "Sign in to confirm you're not a bot", and when the owner asks
-for a legal way, an official API or a browser to get the captions anyway.
+Use when `pirsig_video_fetch` ends in "Sign in to confirm you're not a bot", when the
+`youtube-content` helper (`fetch_transcript.py`, run with Hermes's own Python, whose
+`youtube_transcript_api` import works) ends in a message that YouTube blocks requests from cloud
+IPs, and when the owner asks for a legal way, an official API or a browser to get the captions
+anyway. All three are the same block on the data-centre address, not a fault of the video, so
+run the helper once, then stop and use the choices below. For the helper the owner's own run is
+`pip install youtube-transcript-api` and `python fetch_transcript.py <url> --timestamps` on his
+computer; the pasted output then goes through the output formats of `youtube-content`.
 
 ## What to do
 

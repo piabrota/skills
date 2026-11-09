@@ -49,6 +49,11 @@ a measurement, and not now with the reason. One plugin per PR, pinned by the cat
 
 ## A single-need request ("is there a plugin for X, add it by PR")
 
+0. **Read "community plugin" as the wider ecosystem, not Nous's catalog.** The catalog is one
+   curated slice. When the owner asks whether a plugin exists, search community sources too
+   (`0xNyk/awesome-hermes-agent`, `hermesatlas.com`, GitHub search for `.hermes-plugin` and
+   `provides_hooks`, `plugin.yaml` files) and lead with what exists there. "Not in Nous's
+   catalog" is a caveat that goes after it, never the whole answer: it reads as "nothing exists".
 1. Search the local index with `jq` (name, desc, title, category match on the keyword; `python3`
    is not on the box). Then read the YAML and the plugin's `tools.py` / `plugin.yaml` at the
    pinned `sha` through `gh api ...?ref=<sha>`.
@@ -85,6 +90,20 @@ a measurement, and not now with the reason. One plugin per PR, pinned by the cat
   manifest for a third-party plugin. Load only its skill through `settings.skills.external_dirs`
   (pinned by `fetchFromGitHub`), and run its installer for cron jobs after the merge with a dry
   run first.
+- A plugin whose manifest sits in `.hermes-plugin/` (`plugin.yaml` and `__init__.py`, with the
+  skills in `skills/` at the repo root) still fits: read its `__init__.py` for how it finds its
+  skills (obra/superpowers accepts a flat layout), then build the package with
+  `pkgs.runCommand` that copies the two files and the skills directory to the root of `$out`, and
+  keep the store path read-only. A task for omp: the change is in `hermes.nix` only; the docs rows
+  are Markdown, so write them by hand while omp runs. Pin with `fetchFromGitHub` at the tag's
+  commit, and get the hash with `XDG_CACHE_HOME=<scratch> /run/current-system/sw/bin/nix flake
+  prefetch github:<owner>/<repo>/<rev> --json` (its `hash` field; the default cache stops on a
+  stuck registry link). Proof that fits the box: `nix-instantiate --parse`, a `--dry-run` of the
+  host's toplevel, and a build of the package with `ls` of its root. Whether the loader starts it
+  is only provable after the deploy: ask for a look at `errors.log`.
+- State what a hook does only from its source: find `register_hook`, read the condition on
+  `is_first_turn` or `platform`, and count the injected bytes. A catalog description or a README
+  gave a wrong "every call" once.
 - Run `hermes plugin-guard scan <dir> --fail-on high` and read every HIGH at its line before you
   report. `HPG103` on `subprocess.run([...])` with a list and no shell that runs the plugin's own
   script is low risk; `HPG001` means the manifest format is not `plugin.yaml`, which matters for

@@ -205,6 +205,29 @@ three small pieces and list what stays manual in the docs, each with its reason.
 - A new secrets folder gets its own entries in `hermes/omp.yml` (`restrictedFolders` and a bash
   deny pattern) in the same PR; a diff review that reads only the module misses it.
 
+## Spike a heavy tool before you promise a seat
+
+For "use tool X" where X is heavy or built for a desktop (a 3D or video program) and the repo's
+rules say no GUI. The rules are the owner's, so an owner who wants the tool gets an exception behind
+its own option, after a measurement. Do not argue from the rule alone.
+
+1. Licence and size first. `nix eval --json <locked rev>#<pkg>.meta.license` (a list) and
+   `.meta.unfree`. `nix build <rev>#<pkg> --dry-run` counts only the paths this box lacks, so it
+   is a lower bound. After the build, `nix path-info -S --json <out>` gives `closureSize`.
+2. Prefetch in the background with notify (`nix build ... --no-link --print-out-paths`): hundreds
+   of MiB do not fit a foreground call, and an interrupted fetch resumes on the next run.
+3. Run one small job from `execute_code` with `subprocess.Popen`, a scratch `HOME` and XDG folders,
+   a timeout, and `resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss` for the peak memory.
+   Report elapsed time and peak memory, and look at the output file itself.
+4. On a box with no GPU, try each engine in its own process. A GL engine can segfault with EGL errors
+   while a CPU engine renders (Blender: EEVEE died, Cycles on the CPU worked). Write the working
+   engine into the tool wrapper and forbid the broken one there.
+5. Label an extrapolation (frames times seconds per frame) as an estimate in the docs, next to the
+   measured numbers, and put a frame or time budget into the wrapper.
+6. Ship it behind its own `enable` option, off by default, with an assertion that it needs the parent
+   option, and prove with a before/after `--dry-run` of both hosts that the option off changes
+   nothing. Seats that use the tool replace another seat, so the two-seat memory limit holds.
+
 ## Memory numbers in an answer
 
 A sum of `MemoryMax` values is a ceiling, not a use. When the owner asks whether the box is full,

@@ -106,6 +106,12 @@ controls, who edits it, when it takes effect.
   the owner asks "still running?", answer from facts: `pgrep -af bin/omp`, `ps -o etime=,rss= -p
   <pid>`, the size of the output file and `git status --short`; give the time left on the
   `--max-time` limit. Do not guess.
+- **`omp-run <name>` takes the task file's basename, not stdin.** It reads
+  `omp-tasks/<name>.md`, and only omp flags go after the name (`omp-run fix-x --max-time 20m`).
+  The older form `omp-run <name> -p --mode json ... < file | omp-stream` finds no file named after
+  the run when the two differ, prints `omp-run: no task file ...` and the background task ends with
+  exit 0, so the completion notice looks like a success. Read the notice's text before you say a
+  run happened, and start again with the right name. Confirm with `pgrep -fa 'bin/omp'`.
 - **A finished run's notice keeps only the last ~2,000 characters.** A long audit table in omp's final
   message is cut, and the report file omp wrote at the end may be a 512-byte stub. In the task file,
   name `omp-tasks/<name>.report.md` (inside the workspace), require omp to append each audit item

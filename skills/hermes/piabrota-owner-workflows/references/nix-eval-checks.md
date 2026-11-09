@@ -56,6 +56,16 @@ nix derivation show -r <drvPath> | grep -o '\\"baseVersion\\":\\"[^"\\]*'       
   `serviceConfig`, `path` (map `toString`) and `config.systemd.tmpfiles.rules`; list the service names
   that exist only on the branch (with the option on it must be just the new unit). Equal hashes are the
   proof; say which pieces you hashed.
+- **An assertion fires only when the whole system is evaluated.** Reading one attribute such as
+  `config.systemd.tmpfiles.rules` skips `config.assertions`, so a bad option combination looks fine.
+  Prove an assertion by evaluating `...config.system.build.toplevel.drvPath` with the bad
+  combination and grep the error for `Failed assertions`. A host often sets an option to `false`
+  itself: force the combination with `lib.mkForce true` in the `extendModules` module, or the
+  eval stops on conflicting definitions. For "this PR must not touch host X", compare the drvPath
+  of X on the branch and on `origin/main` (`git archive origin/main | tar -x -C <scratch>`, then
+  a `path:` flake each); equal paths are the proof. For several options that share a resource (an
+  outbox folder, one tmpfiles parent line), eval each combination and count the lines with
+  `sort | uniq -c`: each must occur once.
 - **Size and build load of the whole system, cheaply:** `nix build --dry-run .#nixosConfigurations.<host>.config.system.build.toplevel`
   (a short "will be built" list and no "will be fetched" means the big packages are already in the
   store), then build it and run `nix run nixpkgs#dix -- diff /run/current-system <new toplevel>` (the
