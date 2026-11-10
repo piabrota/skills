@@ -70,6 +70,24 @@ nix derivation show -r <drvPath> | grep -o '\\"baseVersion\\":\\"[^"\\]*'       
   (a short "will be built" list and no "will be fetched" means the big packages are already in the
   store), then build it and run `nix run nixpkgs#dix -- diff /run/current-system <new toplevel>` (the
   `diff` subcommand is required; the last lines give paths and size). Put those numbers in the PR.
+- **Prove a build-time guard (an `assert` or `throw` in a helper such as `site/hermes.nix`) by
+  importing the helper with a fake argument set**: `nix eval --impure --json --expr 'let lib =
+  (import <nixpkgs> {}).lib; in (import ./site/hermes.nix { inherit lib; cfg = {...}; ... }).facts'`,
+  once with a value that must pass and once with one that must throw, and read the error text. The
+  fake package needs `pname` (or `name`): without it the eval stops in `lib.getName` with
+  "attribute 'name' missing" before it reaches the guard, which looks like a result and is not one.
+  The guard must skip a case that has no value to compare (a package built as `0.0.0`), or it
+  breaks a host that never showed the fact.
+- **Which host does a change reach?** Compare each host's `toplevel.drvPath` on the branch and on
+  `origin/main` (detached worktree, `path:` flake). A site change moves `piabrota` (KVM 1 builds
+  the site) and leaves `piabrota2` equal; an nginx change for a vhost on KVM 4 does the reverse.
+  Put both answers in the PR. A large "N derivations will be built" in a `--dry-run` of a host
+  that did not change is the cache state of the box, not your change.
+  **A `hermes.nix` change (a package, a home file, a setting) also moves `piabrota`**: the `/hermes`
+  page is built from the evaluated Hermes config, and `nix-diff` shows the difference only inside
+  `piabrota-site` (the `hermes_config` constant). Never write "the `piabrota` drvPath equals main" as a
+  proof line in a task file for such a change; write "it differs only in `piabrota-site`" and check that
+  with `nix-diff`. Say in the PR that the site on KVM 1 redeploys with no unit restart.
 - Flakes see only tracked files: `git add` moved and new files first. A `Git tree is dirty`
   warning is harmless.
 - To work on a second branch while omp edits the first, use `git worktree add ../<dir> -b

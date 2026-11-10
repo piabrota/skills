@@ -1,6 +1,6 @@
 ---
 name: nixpkgs-tool-research
-description: Use when asked for a Nix tool or a pinned package.
+description: Use when you add, size or version-check a nix-os package.
 disable-model-invocation: true
 ---
 
@@ -19,6 +19,8 @@ $N path-info --store https://cache.nixos.org -S -h "$($N eval --raw github:NixOS
 P=$($N flake metadata --json github:NixOS/nixpkgs/$REV | jq -r .path); ls $P/nixos/modules/services/monitoring   # which NixOS modules exist
 ```
 Use the terminal tool (the `nix` tools do not resolve in `execute_code`). A package that errors with "does not provide attribute" is not in that rev.
+Load this skill for EVERY package version, size, test or build claim about a nix-os host, also when the owner only says "add X" or links an install page. A rev read from `.nodes.nixpkgs` (or from the registry) gave a wrong version, closure and test list once, and every number measured on it was void. Confirm on the real system before you quote: `nix eval --raw path:<worktree>#nixosConfigurations.<host>.pkgs.<pkg>.version`, or for a Hermes tool the entry of `config.services.hermes-agent.extraPackages`.
+A package that is not in the cache because its own tests fail is built on the host that builds (the GitHub runner for a deploy). Read the failing test's log (`nix log <drv>`) and say what the test covers. Disable only that test: `pkgs.<pkg>.overridePythonAttrs (old: { disabledTests = (old.disabledTests or [ ]) ++ [ "<test>" ]; })`. Put the feature that is lost (a real bug, not a cosmetic test) in the comment, the docs and the skill that uses the tool. Render or run the exact built package with the smoke test before you merge. A multi-output build prints the `-dist` wheel path last: pick the `out` path.
 Then read the module file in `$P/nixos/modules/...` (options, `package` option, hardening, `DynamicUser`, `environmentFile`) before you promise a design. Print the version of the first eval and check it against the lock before you quote any option name or size to the owner.
 
 ## 1b. Check the tool does what the owner wants to watch

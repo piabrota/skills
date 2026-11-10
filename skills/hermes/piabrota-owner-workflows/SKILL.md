@@ -121,7 +121,11 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   given. Stop only for a rule that forbids the act, and then name the rule in the first sentence. A rule from a repo's AGENTS.md (no GUI, no fonts, a size cap) is the owner's default, and he overrides it (Node, two fonts, Blender): price the exception by measurement, put it behind an option that is off by default, and build it. Do not offer the compliant route as the recommended pick.
 - **Hermes cuts a context file at 32,000 characters** and drops the middle (the log says
   `Context file ... TRUNCATED`). Keep nix-os `AGENTS.md`, `hermes/AGENTS.md` and `hermes/SOUL.md`
-  under 30,000 (`wc -m`; the nix-os justfile has a `context-size` recipe). Shrink by cutting rows of the
+  under 30,000 (`wc -m`; the nix-os justfile has a `context-size` recipe). Run it on a fresh `origin/main` worktree
+  BEFORE you write any task that touches `AGENTS.md`: main can already be over the cap, and then your PR
+  must shorten wording to get under it and say so. Run
+  `scripts/context-size.sh` with the worktree as its cwd, as `(cd <worktree> && sh scripts/context-size.sh)`:
+  from another directory it prints nothing and exits 0, which looks like a pass. Shrink by cutting rows of the
   file table and moving the detail to the doc the row links, never by cutting the rule sections.
 - **A terminal call over 600 s becomes a background process** and `process_manage wait` is clamped
   to 180 s per call: for an omp run, start it, do the next file work (the next task file, the PR
@@ -141,6 +145,10 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   After it: files changed, checks omp ran, checks you ran, what is unverified, run time, PR link.
   The owner finds the `hermes-omp` interface unclear, so name it ("omp made the edits") and never
   present omp's work as yours. Procedure: `references/omp-harness.md`; to wrap omp for another program, its section "Wrapping omp".
+
+## Other repositories of the owner (h0ffmann/*, marola-dev/*)
+
+For "add X to repo Y" outside nix-os, load `references/other-owner-repos.md`: read the repo's own hard rules first, copy them into the task file, and test on the repo's pinned toolchain as well as the box's. The same file has the two-PR route for piabrota/room (code there, then a nix-os pin bump).
 
 ## Bulk English cleanup (ASD-STE100 across a repo)
 
@@ -186,7 +194,7 @@ For "make CI faster", a job or host rename that workflows name, or any change un
 `.github/workflows`, load `references/ci-speed-requests.md`: measure first, deliver the workflow
 change as a patch file (never a PR), alias a renamed node, warn about a ruleset's required check,
 and the design rules for a gated job. For "update X every day with the ops bot", load
-`references/pin-bump-automation.md`: a tested script plus a draft workflow the owner copies.
+`references/pin-bump-automation.md`: a tested script plus a draft workflow the owner copies; the same file has the daily no-agent cron job that refreshes generated data into a PR in another repository.
 To measure or reduce a CI score (code smell, lint count), load `references/code-smell-refactor.md`.
 
 ## OpenRig seats
@@ -232,8 +240,10 @@ feeds, wire the script into Hermes cron, and the overnight hand-over.
 - Pinned repositories are set only in the GitHub UI (org page, "Customize pins", up to 6 public
   repos of that org). No README edit or API call sets them: do not promise it.
 - The projects table of that profile is also the source of the cards on piabrota.art. For "add repo X
-as a card on the website", load `references/site-project-cards.md`: where the facts and the three
-locale keys live, the personal-owner field, and the mockup regeneration.
+as a card on the website", a stat on every card (commit counts), a service "listed as public", load `references/site-project-cards.md`: where the facts and the three
+locale keys live, the personal-owner field, and the mockup regeneration; the same file has the
+  recipe for a pinned fact on the /hermes page (version, commit) with its build guard, and for a card
+  that links nowhere or a grid with gaps.
 
 ## Model routing, project surveys, service costing
 
@@ -243,7 +253,8 @@ before a model bump, how to classify and measure projects, and the three-table c
 After the owner says yes to hosting a service on a nix-os host (or to publishing another repo's
 generated files at a new subdomain), load `references/add-service-to-host.md`:
 hostname check, the `hermes-web.nix` pattern, packaging from a pinned source (an npm app too),
-the omp run order, a web UI behind basic auth, the operating skill for a third-party tool, and
+the omp run order, a web UI behind basic auth, making a page public with robots.txt and agent
+blocks, giving pages their own subdomain (redirect, DNS, README rows), the operating skill for a third-party tool, and
 how to give memory numbers.
 
 ## Loading skill repos into Hermes
@@ -362,3 +373,6 @@ files, the layers to grep, and how to scope a loosened rule.
   search one file's directory, not the repo root, when you only need a line. Starting `omp-run`
   with `workdir` in the repo loads it once too: do all reads of AGENTS.md before, and do not
   `git worktree add` from inside a dirty old clone: use `git -C <clone> worktree add ../<new> -b hermes/<slug> origin/main`.
+  Check `git -C <clone> worktree list` for the directory name first: when `worktree add -b` fails
+  because the directory exists, the branch was already created. Pick a fresh directory and add the
+  worktree on the existing branch without `-b`.
