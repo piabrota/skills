@@ -42,6 +42,25 @@ into `omp-tasks/<topic>/` first.
 - Do not call a restyle done from the task report. Open the renders (`vision_analyze`), at 1280
   and 390 px, dark and light, for each page type, then commit.
 
+## "There is no identity" across several sites: one modular kit
+
+When the owner says the sites do not look like one family, do not restyle page by page.
+
+1. **Audit by rendering every site** (home, skills, metrics, each generated index, one page of each foreign
+   repository, one archify diagram) and compare each with `site/DESIGN.md`. Name the identity once (tokens, three
+   fonts, eye mark, hero with stats, `§` sections, pills, cards) and list per site what it lacks.
+2. **Build a kit, not a theme:** one tokens file, one small CSS file per module with a prefix (`pb-`), so a page
+   takes only the modules it uses; pure functions that return escaped HTML; ONE list of the sites (a check fails
+   when a vhost is missing from it); and a build-time injector that puts an in-flow, always-dark brand bar into every
+   HTML page that comes from another repository, idempotent, with all its CSS under its own class and no edit of
+   the page's own CSS or scripts. A drift test compares the kit's token values with the home's `style.css`.
+3. **Stage 1** puts the generated indexes and foreign pages on the kit; **stage 2** moves the home, skills and
+   metrics onto it. Say the stage split in the first reply, and list the files that still hold a copy of the tokens.
+4. **Render pitfalls:** a page with root-absolute asset paths (`/style.css`) loses its CSS from `file://`: serve the
+   folder or reuse an earlier render, or you will judge a broken screenshot. Take `*.html` from a folder listing,
+   not `ls | head -1` (it returned a JSON receipt that Chromium printed as text). Look at every image before you
+   quote it.
+
 ## Pages built inside a Nix derivation
 
 A shell template that writes a page (an index, a bar injected into another page) must reuse the

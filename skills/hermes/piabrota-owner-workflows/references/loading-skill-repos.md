@@ -49,6 +49,10 @@ reply.
    `general`). Keep `allowedReferences = [ ]`.
 4. omp edits `hermes.nix` only (one binding, two lines; about ten turns); write the two doc rows
    (`docs/HERMES.md`, `docs/HERMES.ptBR.md`, after the `hermes-cron` row) by hand while it runs.
+   Say in the task file that you add those rows in the same worktree, or omp reports them as
+   unexplained changes in `git diff --stat` and asks whether it wrote them. The doc row states the
+   description cost (about its length in KB, shown in every session's skill list) and that Hermes
+   only reads the scripts.
    Proof that fits: `nix-instantiate --parse`, a `--dry-run` of the host toplevel, then evaluate
    `config.services.hermes-agent.settings.skills.external_dirs` and realise its first path (the
    `optionalSkills` store path) and `ls` the skill folder.

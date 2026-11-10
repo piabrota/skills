@@ -10,6 +10,7 @@ Check the licence of the source before you reuse a skill.
 |---|---|---|---|
 | `cron-delivery-pitfalls` | Made by Hermes on this box | MPL-2.0 | piabrota-hermes |
 | `hermes-box-diagnosis` | Made by Hermes on this box | not stated | not stated |
+| `hermes-manim` | Added by nix-os (skills) | MPL-2.0 | piabrota |
 | `hermes-omp` | Added by nix-os (skills) | MPL-2.0 | piabrota |
 | `hermes-plugin-inspection` | Made by Hermes on this box | MPL-2.0 | piabrota |
 | `hermes-rig` | Added by nix-os (skills) | MPL-2.0 | piabrota |

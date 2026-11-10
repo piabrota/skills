@@ -7,7 +7,11 @@ or when the owner asks whether such a tool is free or fits.
 
 1. Ask "is it paid" from the pinned nixpkgs, not from memory:
    `nix eval --json <nixpkgs rev>#<pkg>.meta.license` and `.meta.unfree`. A free licence needs no
-   change to `unfree.nix`.
+   change to `unfree.nix`. Use the nixpkgs that the SYSTEM builds with: `jq -r .nodes.root.inputs.nixpkgs
+   flake.lock` names the root node. A `nixpkgs` node reached through another input (the
+   `hermes-agent` input has its own) pins other versions: a spike on it measured a different Blender
+   and Manim than the host gets. Read the version from the built host
+   (`nixosConfigurations.<host>.pkgs.<pkg>.version`) and say which pin each number came from.
 2. Measure cost before the design: `nix build <rev>#<pkg> --dry-run` (paths to fetch; it counts only
    what the box lacks, so it understates the closure), then the real size with
    `nix path-info -S --json <store path>` (`closureSize`). Fetch in a background terminal call with

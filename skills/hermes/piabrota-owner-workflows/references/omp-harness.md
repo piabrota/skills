@@ -217,6 +217,12 @@ controls, who edits it, when it takes effect.
   raises the sample rate: end the chain with `aresample=48000`). Fix a one-line slip like this by
   hand and say so. Re-run omp's tests in the same environment it needed (a test that calls
   `openssl` fails in your shell until you run it under `nix shell nixpkgs#openssl -c`).
+- **Run the recipe the PR adds, not only the command inside it.** A `just` recipe that omp wrote and
+  tested through its inner command can still fail on this box's toolchain: `node --test <dir>` on
+  Node 24 treats a directory as a module and reports a failed test with no count. Run the recipe
+  itself (`nix shell nixpkgs#just nixpkgs#nodejs --command just <recipe>`), read the pass count,
+  and name test files in the recipe, the docs and the file header comments. Fix such a slip by
+  hand and say so.
 - **Turning a module off (`enable = false`) with omp.** Task file: keep the code and the import,
   flip the switch, and require a before/after `nix eval` of the host (units, nginx hosts, firewall
   ports, ACME certs, `extraPackages`, Hermes environment names) against `origin/main` in a second

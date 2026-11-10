@@ -31,7 +31,30 @@ The box may have no `dig`. Query DNS-over-HTTPS from `execute_code` with `urllib
 - No `AAAA` yet. When the VPS has IPv6, a CA prefers it if a record exists, so the IPv6 firewall
   must open ports 80 and 443 first, or issuance fails.
 - The record must resolve before the first deploy that enables ACME. Without it the certificate
-  order fails and deploy-rs rolls the host back.
+  order fails. NixOS then keeps a self-signed placeholder and the services still start, so the
+  deploy goes through and visitors see a certificate error (seen on the box); a rollback is not
+  proven, so do not promise one either way.
+
+## A new name shows a certificate error or the wrong site
+
+Diagnose with read-only calls, in this order, and show the owner the facts:
+
+1. DNS: the DoH `A` answer of each new name (above), next to the address of the host whose nginx
+   declares that vhost (`site.nix` on the public-web host, the roles of the other host in its
+   `hosts/<name>/`). A name that points at the wrong host reaches that host's default vhost, so the
+   page shows ANOTHER site's `<title>` (a subdomain of the web host answered with the room).
+2. Prove the vhost exists on the intended host before DNS is right:
+   `curl -sk --resolve <name>:443:<intended ip> https://<name>/` (read the `<title>`).
+3. Certificate: `curl -svk -o /dev/null https://<name>/ 2>&1 | grep issuer`. An issuer of
+   `minica root ca` is the NixOS placeholder: ACME has not issued yet. Let's Encrypt means it did.
+4. The ACME unit: `journalctl -u acme-order-renew-<name> -n 40` on the host you run on. It usually
+   shows only the wrapper's "Failed to fetch certificates ... DNS records" line, not the CA's
+   reason: say that you cannot read the real error. `curl -s -o /dev/null -w '%{http_code}'
+   http://<name>/.well-known/acme-challenge/x` answering 404 proves port 80 reaches nginx.
+5. The retry is the owner's: after the A record is right, `sudo systemctl start
+   acme-order-renew-<name>` on the host that serves the name (you cannot SSH to the other host and
+   you never run a unit start). The timer also retries on its own. If it fails again, ask for the
+   last 60 journal lines instead of guessing.
 
 ## Order before the merge
 

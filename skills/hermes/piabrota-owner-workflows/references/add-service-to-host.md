@@ -100,6 +100,47 @@ For "deploy the UI at <name>.piabrota.art" (a tool whose UI can type into runnin
 - The owner's order to deploy at a name means the vhost is turned on in the host file in the same
   change. A first draft that leaves it off needs a second small omp run to flip it.
 
+## Making a page public (drop the login) and adding robots.txt and agent blocks
+
+For "this endpoint should be public, but add agent blockers / robots.txt for security". The login
+becomes an option, not a deletion, and the blocks are honest about what they do.
+
+- **Login optional, public by default.** `htpasswdFile` becomes `types.nullOr types.str`, default
+  `null`; `basicAuthFile = cfg.htpasswdFile` then adds no `auth_basic`. A path puts the login back.
+  Reword every comment and option text that says "behind basic auth" (header, `enable`, rate-limit
+  comment) and the docs' login section. A location that stays restricted by address (a publish
+  location with `allow`/`deny all`) is not touched.
+- **List what the page exposes before you merge**, from the schema file, and name the fields that
+  show topology (unit names, process names and users). The owner's "public" covers them; say it
+  once in the PR and name the script that would cut them.
+- **One Nix list feeds both artefacts.** `blockedAgents` (GPTBot, ClaudeBot, CCBot, PerplexityBot,
+  Bytespider and the like) goes into `pkgs.writeText` for `/robots.txt` (one `User-agent:` plus
+  `Disallow: /` block per name, then `User-agent: *`), and into one `map` in `appendHttpConfig`.
+  Serve the file from a `= /robots.txt` location with `alias`, `default_type text/plain` and a
+  day of `Cache-Control`.
+- **Block with a `map` on `"$uri|$http_user_agent"`**, not an `if` per location: the first line
+  `"~^/robots\.txt\|" 0;` exempts the robots path (a blocked agent must still read it), the second
+  `"~*\|.*(<names joined with |, lib.escapeRegex>)" 1;` matches case-insensitively, `default 0`. One
+  server-level `if ($var) { return 403; }` holds only the `return`, the one safe use of `if`. Do
+  not block `curl`, `python-requests`, an empty or a browser User-Agent. `Google-Extended` and
+  `Applebot-Extended` are robots.txt tokens that never appear in a User-Agent: keep them in the
+  file, and say nginx cannot match them.
+- **`X-Robots-Tag` goes in the shared `headers` binding, and every location repeats it** (`add_header`
+  in a location drops the server's). Locations that come from another module (`favicon.nix`) get
+  it with `lib.mapAttrs (_: l: l // { extraConfig = l.extraConfig + robotsTag; }) <locations>`, then `// { ... }` for
+  your own locations: function application binds tighter than `//`, so no extra parentheses.
+  Add a `limit_conn` zone beside the existing `limit_req`.
+- **Say what it is not.** `robots.txt` and a User-Agent block stop well-behaved crawlers only; a
+  scraper changes its User-Agent and ignores the file. They are not access control. The page is
+  safe to expose only because it holds no secret. `User-agent: *` with `Disallow: /` also asks
+  search engines to skip the page. Put these three sentences in the docs (both languages) and the PR.
+- **Proof without a VM.** `checks.<name>` that boots VMs needs `/dev/kvm`, which kvm4 lacks, and CI
+  does not run it: say "did not run", never "passed". Instead evaluate the vhost
+  (`...virtualHosts."<fqdn>".extraConfig`, `.basicAuthFile` = `null`, `...locations."= /robots.txt"`,
+  `...services.nginx.appendHttpConfig | grep -A5 'map '`), compare the drvPath of the other host
+  with `origin/main` (equal = untouched), and ask omp to run the rendered `nginx.conf` on loopback.
+  Relay omp's loopback result as omp's. The merge reloads nginx; it restarts no seat unit.
+
 ## A service that spans both hosts (a hub and agents, such as monitoring)
 
 nix-os has two hosts, and a service that watches both is easy to design for one. State in the first
@@ -211,7 +252,7 @@ For "use tool X" where X is heavy or built for a desktop (a 3D or video program)
 rules say no GUI. The rules are the owner's, so an owner who wants the tool gets an exception behind
 its own option, after a measurement. Do not argue from the rule alone.
 
-1. Licence and size first. `nix eval --json <locked rev>#<pkg>.meta.license` (a list) and
+1. Licence and size first, at the rev the host builds (the root input's rev: `jq -r '.nodes[.nodes.root.inputs.nixpkgs].locked.rev' flake.lock`; a spike on another rev measures another version). `nix eval --json <that rev>#<pkg>.meta.license` (a list) and
    `.meta.unfree`. `nix build <rev>#<pkg> --dry-run` counts only the paths this box lacks, so it
    is a lower bound. After the build, `nix path-info -S --json <out>` gives `closureSize`.
 2. Prefetch in the background with notify (`nix build ... --no-link --print-out-paths`): hundreds
@@ -227,6 +268,95 @@ its own option, after a measurement. Do not argue from the rule alone.
 6. Ship it behind its own `enable` option, off by default, with an assertion that it needs the parent
    option, and prove with a before/after `--dry-run` of both hosts that the option off changes
    nothing. Seats that use the tool replace another seat, so the two-seat memory limit holds.
+
+### The owner links an install doc that uses uv, pip or npm (a Python tool for Hermes itself)
+
+The deny list blocks `uv tool install|run|add`, `uv pip install`, `pip install` and `npx`: "tools
+come pinned from Nix". Say so in the first reply, and take the route that the repo allows instead of
+following the doc:
+
+1. Find the package at the rev the HOST builds, not the registry's and not `.nodes.nixpkgs` of the lock (that node can
+   belong to another input, such as `hermes-agent`): `jq -r '.nodes[.nodes.root.inputs.nixpkgs].locked.rev' flake.lock`.
+   Then `nix eval --raw github:NixOS/nixpkgs/<rev>#<pkg>.version` (also `python3Packages.<pkg>`), then `.meta` for licence and `broken`.
+   The failing tests, the version, the closure and every timing you measure belong to that rev: a different rev gives
+   different tests to disable. Treat the facts you put in the task file as hypotheses; when omp reports that the pin has another
+   version, believe the evaluation of the real system, redo the spike on the exact package (build the drv of the entry in
+   `config.services.hermes-agent.extraPackages`; `nix-store -r` prints several outputs, so skip the `-dist` wheel and take the one with `bin/`), and
+   fix the skill text and PR body for the new numbers. `nix build <rev>#<pkg> --dry-run`
+   gives the fetch size, and `nix-store -qR $(nix eval --raw <rev>#<pkg>.drvPath) | grep -iE 'texlive|ffmpeg|cairo|pango'`
+   shows which heavy parts the wrapper already brings, so the skill does not tell Hermes to install them.
+   A dry run that says "this derivation will be built" for the package itself (not only its inputs) means
+   the binary cache has no build of it, usually because its own test suite fails upstream. Build it once in
+   the background, then read `nix log <drv>` and the `FAILED` line. If the failing test is cosmetic (a CLI
+   help text that a newer dependency changed), disable only that test:
+   `pkgs.<pkg>.overridePythonAttrs (old: { disabledTests = (old.disabledTests or [ ]) ++ [ "<test name>" ]; })`.
+   Comment in the `.nix` what the test checks, why it is safe to skip, and when to drop the override. Never
+   use `doCheck = false` for a whole suite, and never override a test that exercises the feature the owner
+   wants. The CI runner builds the override, so the box only fetches it.
+2. Put the package in `extraPackages` of `hermes.nix`: that list is the PATH of Hermes's terminal. `hermes.nix`
+   is imported by the big host only, so the small host's derivation stays equal to `main`: prove it.
+3. Spike it before the PR (step 3 above): render one small job in a scratch dir from the built store path
+   of the OVERRIDDEN package, with text, a formula and a shape if the tool has them, and read the output
+   file. `/usr/bin/env time -v` on the CLI reports the parent only: a child encoder can hide memory, so say
+   the peak may be low. Name the scratch script with a new file name per attempt: `write_file` refuses to
+   overwrite a file this session has not read.
+   Ship the same job as `scripts/smoke.py` plus a `scripts/smoke.sh` in the skill (exit 2 and a clear
+   message when the tool is not on the PATH), and prove the missing-tool path with `env -i PATH=<minimal> sh`.
+4. Teach Hermes with a skill in `hermes/skills/<name>/` (Markdown, so you write it by hand): how to run the
+   tool here, where files go (the workspace, never the repo), the cheap quality flag first, a time limit and a
+   memory note against the unit's `MemoryMax`, how to send the result to the chat, and a pointer to the bundled
+   craft skill when one exists (`manim-video` for Manim) instead of repeating it. Add the doc rows in both
+   languages. A skill-only change deploys nothing, but the `extraPackages` change does: say it first.
+   Say in the skill who writes the tool's input files: a scene or script that the owner asks for as an
+   artifact is content, and Hermes writes it in its workspace; code that goes into a repository still
+   goes through omp. Name this split as a decision the owner may reverse, in the PR and in chat. Keep the
+   skill at most 150 lines and the description at most 60 characters (`skill-validator`).
+
+## Giving pages their own name (a path or a shared vhost becomes `<name>.piabrota.art`)
+
+For "move X to its own address", "remove the pirsig html from this address", "move skills to its own
+subdomain". Several such asks can arrive on one open PR; the owner wants one PR.
+
+- **Redirect only an address that answered.** A path that is live today (a site served at `/skills/`)
+  gets a 301 to the same path on the new name, query string kept, the page name captured from a closed
+  character set (`[A-Za-z0-9._/-]*`, gixy's http_splitting) and `$is_args$args`. A name that never answered
+  (pages that were never deployed, no DNS) gets no redirect. Say which case it is.
+- **Which host.** Keep a static site where its module already builds it (the skills pages stay on KVM 1
+  in `site.nix`); a sibling of an existing piabrota2 vhost joins that module with one `vhost` helper and a
+  `<x>.domain` option, no second `enable`. Factor the shared index look and gates into one file; never copy
+  CSS or archify code twice. Every vhost carries `config.piabrota.favicon.locations`.
+- **DNS goes first and names the IP of the host that serves each name** (`dig` / DNS-over-HTTPS shows today's
+  state; the box shows missing records as failed `acme-order-renew-<fqdn>` units in `kvm4-health`). Put the
+  records at the top of the PR body, and warn that a redirect to a name that does not resolve yet breaks the old
+  link until the record exists. Do not claim a failed ACME order is harmless unless you proved it: the repo's
+  docs say deploy-rs can roll back, and the box showing failed units without a rollback is evidence, not proof.
+- **When the owner reports "HTTPS certificate error" or "it shows another site" after the merge,** diagnose by
+  name before you touch code. For each new name: (1) DNS-over-HTTPS A record against the IP of the host that
+  should serve it (`curl -s -H 'accept: application/dns-json' 'https://cloudflare-dns.com/dns-query?name=<fqdn>&type=A'`);
+  (2) `curl -svk https://<fqdn>/ 2>&1 | grep issuer`: a `minica root ca` issuer is NixOS's self-signed placeholder,
+  which means the ACME order never succeeded, a Let's Encrypt issuer means it did; (3) a name whose record points at
+  the other host gets that host's default vhost (the room answered for `skills`): test the right host directly with
+  `curl -sk --resolve <fqdn>:443:<right ip> https://<fqdn>/`; (4) `journalctl -u acme-order-renew-<fqdn>` on the host
+  that owns the name (the unit only logs a generic "DNS records may be wrong" line, so say the real ACME error is
+  unread). An order that failed before the record existed does not retry at once: give the owner the
+  `sudo systemctl start acme-order-renew-<fqdn>` lines (you cannot restart units) after the record is right, and
+  ask for the journal if it fails again. Port 80 answering 404 on `/.well-known/acme-challenge/x` proves the
+  challenge path is reachable.
+- **An address change is a docs change in many places.** README "Addresses" table (the owner asks for it by
+  name: change the old row, add the new rows, keep the "Not yet answering: DNS first" wording), the nix-os
+  `AGENTS.md` rows, `docs/SITE.md` (favicon table, DNS section), `docs/STRUCTURE.md`, `site/DESIGN.md`, the
+  services or project data of `mockups/data.nix` and its locales, `.devin/wiki.json`, the wiki home pages.
+  `git grep -n -i "<old address>"` finds them; regenerate the mockups.
+- **Run `scripts/context-size.sh` on `origin/main` before you start.** Main may already be over the cap (a
+  sibling merge pushed it); the PR then has to shorten wording to get under 32000 and say so.
+- **Proof:** a check that reads the evaluated nginx config (vhost exists with `forceSSL`, `enableACME`, the
+  favicon locations; the old vhost has the redirect and no store alias; the option `null` removes both), built
+  outputs listed with `find` (the old output has none of the moved files, the new one none of the old
+  names), vhost names per host by `nix eval`, and both hosts' drvPaths against `origin/main`.
+- **Run the omp tasks one at a time in the same worktree** when asks are added to an open PR: write the
+  next task file while the run works, make each file start with `git status` / `git diff` (keep earlier
+  changes, undo none) and list the files it must not touch, order them so the one that changes markup runs
+  before the one that only restyles it, and review and commit once at the end.
 
 ## Memory numbers in an answer
 
