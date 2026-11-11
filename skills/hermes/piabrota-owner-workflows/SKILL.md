@@ -59,7 +59,7 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   post a signed correction comment that gives the right number and say so in chat. Name who did what: "omp made the edits, Hermes read the diff".
 - **Evaluate when you cannot build.** For `.nix` and `flake.lock` changes, and when the owner waives
   verification, run the evaluation checks in `references/nix-eval-checks.md` (also the recipe for
-  bumping a flake input) and still list in the body what did not run.
+  bumping a flake input and the proof for a Hermes release bump) and still list in the body what did not run.
 - **Check the PR is still open before you push a follow-up to its branch.** The owner merges
   fast. A commit pushed after the merge lands on no base: `gh pr view <n> --json state` first, and
   if it says MERGED, open a new PR from the same branch (or a fresh `hermes/` branch off `main`).
@@ -90,7 +90,13 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   find the marker lines with `grep -n -E '^(<{7}|={7}|>{7}|\|{7})'`, delete the markers and the
   unwanted sections by line number in one `sed -i`, and grep again for zero markers. Then rerun the
   cheap checks (host eval, context size, the wiki check), commit, push in its own call, and confirm
-  `gh pr view <n> --json mergeable` before you report. A conflict in the owner's PR is a different
+  `gh pr view <n> --json mergeable` before you report. Before the merge, `git fetch` the PR branch and read its log: the owner may
+  have pushed commits on top of yours, and the PR's real tip is the remote one. A shallow clone fails
+  the merge with "refusing to merge unrelated histories": deepen both refs once
+  (`git fetch --depth 300 origin main <branch>`; worktrees share the clone's history) and retry.
+  When `AGENTS.md` conflicts in many hunks that are only rewording, take main's file
+  (`git checkout --theirs -- AGENTS.md`), then re-apply only your own additions, found with
+  `git diff <merge-base> HEAD -- AGENTS.md`. A conflict in the owner's PR is a different
   case (`references/omp-harness.md`).
 - **Ship before you answer side questions.** When the owner interrupts a long task with another
   question, the owner assumes finished files are already a PR. Push and open the PR as soon as
@@ -118,7 +124,7 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   split or reword it; never look for a way around.
 - **An explicit order stands.** When the owner says "install X" or "do Y", do the work and put the
   cost and the risk in the PR body or the reply. Do not stop to ask for a "yes" he has already
-  given. Stop only for a rule that forbids the act, and then name the rule in the first sentence. A rule from a repo's AGENTS.md (no GUI, no fonts, a size cap) is the owner's default, and he overrides it (Node, two fonts, Blender): price the exception by measurement, put it behind an option that is off by default, and build it. Do not offer the compliant route as the recommended pick.
+  given. Stop only for a rule that forbids the act, and then name the rule in the first sentence. A rule from a repo's AGENTS.md (no GUI, no fonts, a size cap) is the owner's default, and he overrides it (Node, two fonts, Blender): price the exception by measurement, put it behind an option that is off by default, and build it. Do not offer the compliant route as the recommended pick. When a `clarify` question comes back cancelled or unanswered, the owner is not blocked on it: do the part that is unambiguous, ask the open question once at the end of the reply, and never ask it twice.
 - **Hermes cuts a context file at 32,000 characters** and drops the middle (the log says
   `Context file ... TRUNCATED`). Keep nix-os `AGENTS.md`, `hermes/AGENTS.md` and `hermes/SOUL.md`
   under 30,000 (`wc -m`; the nix-os justfile has a `context-size` recipe). Run it on a fresh `origin/main` worktree
@@ -265,6 +271,8 @@ change to `settings.skills.external_dirs`, load `references/loading-skill-repos.
 a temp `HERMES_HOME`.
 For "create a command for yourself" (a new `/x` that stays after a deploy), load
 `references/own-skill-command.md`.
+For a pasted installer or "run this to set up tool X" (`curl | sh`, a hub CLI), load
+`references/third-party-tools-and-installers.md`: vet the script as a file, check upstream, report, run nothing.
 
 ## Owner plugin requests (pirsig-notes, pirsig-videos)
 

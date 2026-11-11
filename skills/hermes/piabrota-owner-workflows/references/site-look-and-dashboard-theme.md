@@ -56,7 +56,10 @@ When the owner says the sites do not look like one family, do not restyle page b
    the page's own CSS or scripts. A drift test compares the kit's token values with the home's `style.css`.
 3. **Stage 1** puts the generated indexes and foreign pages on the kit; **stage 2** moves the home, skills and
    metrics onto it. Say the stage split in the first reply, and list the files that still hold a copy of the tokens.
-4. **Render pitfalls:** a page with root-absolute asset paths (`/style.css`) loses its CSS from `file://`: serve the
+4. **Run what omp wrote, as written.** `node --test <directory>` fails on Node 24 (it takes files, not
+   folders): a `just` recipe must name the test files. Run each recipe a PR adds once yourself, and fix
+   the recipe and every doc line that quotes it.
+5. **Render pitfalls:** a page with root-absolute asset paths (`/style.css`) loses its CSS from `file://`: serve the
    folder or reuse an earlier render, or you will judge a broken screenshot. Take `*.html` from a folder listing,
    not `ls | head -1` (it returned a JSON receipt that Chromium printed as text). Look at every image before you
    quote it.

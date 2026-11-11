@@ -18,6 +18,36 @@ fits the unit's memory cap). It proves the flake still evaluates, never that it 
 5. Anything that holds the version by hand (a variable in `hermes.nix`, the README badge) moves in
    the same PR.
 
+## Bump the Hermes input itself (a release tag)
+
+The input is pinned by tag, so the bump is a tag change plus `nix flake update hermes-agent`. The extra work
+is proving that the new release still fits this box, before the PR.
+
+1. **The lock holds the commit, not the tag object.** A release tag is annotated:
+   `gh api repos/NousResearch/hermes-agent/git/ref/tags/<tag>` returns a `tag` object, and
+   `git/tags/<that sha>` returns the commit. Give omp the commit and the facts you read from upstream
+   (omp cannot run `gh` or `curl`): the release date, whether the notes are thin, and that the contract
+   of the gateway wrapper still exists (`gh api 'repos/.../contents/gateway/restart.py?ref=<commit>'`: exit
+   code 75 and the `--external-supervisor` flag).
+2. **omp's final report arrives cut by the log tail.** Do not quote it. Read `git diff` for the lock node
+   (only `hermes-agent` may move; an input that upstream dropped may leave the lock too) and rerun the
+   proof yourself in one background script: package `--version`, the gateway-wrapper test count,
+   `checks.hermes-docs-url`, both dry builds, `dix diff <old toplevel> <new toplevel>`.
+3. **Plugins:** loop over `nix path-info -r <toplevel>` and print `requires_hermes` from every `plugin.yaml`.
+   The pins are skipped on start when one needs a newer Hermes than the pin: this lists the trap.
+4. **Try the new binary on copies of the real data, never on the real state.** In a scratch folder: copy
+   `config.yaml` only (never `.env`), set `HERMES_HOME` and `HOME` to it, create `cron/`, and drop
+   `CLAUDE_CODE_OAUTH_TOKEN` from the child's environment. `hermes config check` prints "Config version A → B"; read the step for B in the new package's `hermes_cli/config_migrations.py` and say what it
+   rewrites and whether this box sets that key. Copy `state.db` with Python's `sqlite3` backup call from
+   `execute_code` (the box has no `sqlite3` binary), run `hermes sessions list` on the copy, then compare
+   `schema_version`, `integrity_check` and the session count before and after. This is a read path: say in
+   the PR that a gateway start may run more migrations than it proved.
+5. **PR body:** the release notes of a patch that rolls up hundreds of merged PRs list little, so say
+   that unlisted changes are likely. List the config default that changes behaviour for the owner
+   (for example a shorter timeout on an unanswered `clarify`). The merge restarts `hermes-agent` and
+   `hermes-backend`: say no omp run or Hermes task may run at the merge, and what to check after
+   (`NRestarts` stable, one gateway in the unit's cgroup).
+
 ## Prove a value without building
 
 ```console
@@ -88,6 +118,12 @@ nix derivation show -r <drvPath> | grep -o '\\"baseVersion\\":\\"[^"\\]*'       
   `piabrota-site` (the `hermes_config` constant). Never write "the `piabrota` drvPath equals main" as a
   proof line in a task file for such a change; write "it differs only in `piabrota-site`" and check that
   with `nix-diff`. Say in the PR that the site on KVM 1 redeploys with no unit restart.
+- **Which nixpkgs builds the thing?** `flake.lock` holds several nixpkgs nodes, and an input such as
+  `hermes-agent` carries its own. The system uses the root input's: `jq -r '.nodes.root.inputs.nixpkgs
+  as $n | .nodes[$n].locked.rev' flake.lock`. A package version for the box is read from the evaluated
+  system (`nix eval --raw .#nixosConfigurations.<host>.pkgs.<name>.version`), never from a spike with
+  `nixpkgs#<name>` or from another node's rev: a task file built on the wrong pin sends omp to the wrong
+  version, and docs that name a nixpkgs rev go stale the same way.
 - Flakes see only tracked files: `git add` moved and new files first. A `Git tree is dirty`
   warning is harmless.
 - To work on a second branch while omp edits the first, use `git worktree add ../<dir> -b

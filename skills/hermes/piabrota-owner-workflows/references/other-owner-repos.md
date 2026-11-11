@@ -69,9 +69,13 @@ For a change to what `room.piabrota.art` or `grid.piabrota.art` shows.
   (`room-site/default.nix`: `rev`, `hash`, `npmDepsHash`; the header says a new room commit shows only
   after a nix-os PR moves them; the npm hash comes from `nix run nixpkgs#prefetch-npm-deps --
   package-lock.json`). A merged room PR changes nothing live until the pin moves, so say it in the
-  first reply and in the room PR's Risk section, and open the pin PR only after the owner says the room
-  PR is merged (check `gh pr view <n> --json state`); the owner may not say it, so check the state yourself
-  when you finish another room task. The pin PR is small: the new `rev`, its `hash` from `nix flake prefetch
+  first reply and in the room PR's Risk section. **Look for the automation before you open a pin PR:**
+  when nix-os `main` has `.github/workflows/room-pin.yml` (the AGENTS.md file table lists it), a scheduled job
+  opens the pin PR itself on the branch `agents/room-pin` (check `gh pr list --head agents/room-pin --state all`
+  and `gh run list --workflow room-pin.yml`). Then a manual bump only duplicates it: report whether that PR is
+  open and when the job last ran, and open your own only if the job is missing or failing. Without the
+  automation, open the pin PR after the owner says the room PR is merged (check `gh pr view <n> --json state`); the owner
+  may not say it, so check the state yourself when you finish another room task. The pin PR is small: the new `rev`, its `hash` from `nix flake prefetch
   github:piabrota/room/<rev>` (prefetch the OLD rev first: it must equal the current pin, which proves the
   method), `npmDepsHash` unchanged when `package-lock.json` is identical in both trees (`cmp`; the build with the
   old value is the proof), then build `config.piabrota.room.root` of the `piabrota2` system and grep the built
