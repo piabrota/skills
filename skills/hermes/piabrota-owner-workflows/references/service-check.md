@@ -11,7 +11,18 @@ AGENTS.md into the output).
    loop that healed shows 0. Count the loop in the journal instead: `journalctl -u <unit>
    --since <deploy time> | grep -c 'Failed with result'`, and read the first and last time stamps.
 3. **DNS and TLS.** `dig +short A <fqdn> @1.1.1.1` against the box IP; `curl -s -o /dev/null -w
-   '%{http_code} %{ssl_verify_result} %{time_total}'` on the public URL.
+   '%{http_code} %{ssl_verify_result} %{time_total}'` on the public URL. Without `dig`, ask a DNS-over-HTTPS
+   resolver (`curl -s -H 'accept: application/dns-json' 'https://cloudflare-dns.com/dns-query?name=<fqdn>&type=A'`).
+   **A certificate warning on a new name** ("all the new addresses have certificate errors"): for each name
+   read the issuer (`curl -svk ... 2>&1 | grep issuer`). A `minica root ca` issuer is NixOS's self-signed
+   placeholder: the ACME order has not succeeded, and nginx serves the placeholder. Then compare the A record
+   with the host that has the vhost in the config (two hosts can serve one domain; the wrong one answers with
+   its default vhost and shows another site's title). Then read `journalctl -u acme-order-renew-<fqdn>`: the
+   wrapper's "Failed to fetch certificates" line hides the real ACME error, so say that you cannot see it. A
+   record that was missing at the order time and fixed later needs a new order: the owner starts
+   `acme-order-renew-<fqdn>.service` (a root action; check the repo's `just` recipes for a cert-fix command)
+   or waits for the retry timer. Port 80 answering 404 on `/.well-known/acme-challenge/x` shows that the
+   challenge path is reachable.
 4. **Health.** The public and the loopback health URL (`/api/health` or the app's own). Read the
    whole JSON: a `warnings` list can sit next to `status: ok`. A first-day "no backup yet" warning
    is expected; say to recheck after the schedule, and do not read the backup folder.
