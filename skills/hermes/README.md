@@ -15,6 +15,7 @@ Check the licence of the source before you reuse a skill.
 | `hermes-plugin-inspection` | Made by Hermes on this box | MPL-2.0 | piabrota |
 | `hermes-rig` | Added by nix-os (skills) | MPL-2.0 | piabrota |
 | `kvm4-health` | Added by nix-os (skills) | MPL-2.0 | piabrota |
+| `marola-site-pr-workflow` | Made by Hermes on this box | not stated | not stated |
 | `md-to-pdf-closed-source` | Made by Hermes on this box | not stated | not stated |
 | `nixpkgs-tool-research` | Made by Hermes on this box | not stated | not stated |
 | `omp-long-tasks` | Made by Hermes on this box | not stated | not stated |

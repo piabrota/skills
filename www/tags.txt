@@ -66,6 +66,7 @@ mapbox: web maps
 humanizer: english writing
 humanizar: pt-br writing
 humanizer-pt-br: pt-br writing
+marola-site-pr-workflow: hermes-skill
 omp-long-tasks: hermes-skill
 cron-delivery-pitfalls: hermes-skill
 hermes-box-diagnosis: hermes-skill

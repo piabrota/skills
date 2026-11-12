@@ -8,6 +8,20 @@ Three topics that come up sometimes. Each is a procedure with its own checks.
   `delegation.model` (all `delegate_task` subagents, global pin), `auxiliary.<task>.model` (side
   calls: `title_generation`, `skills_hub`, `vision`, ...), per-cron-job `model`, and the external
   `advanced-delegation` plugin (`model_map` routes the main model picks per task).
+- **"Route to model X when the prompt has keyword K"**: no setting or hook does it. The
+  `pre_llm_call` hook only adds context or blocks a turn, and gets no agent; `switch_model` is
+  internal, so a plugin that calls it breaks on a Hermes update. Do not build that. The supported
+  routes are `/model <id>` by the owner, and a one-shot job on the other model:
+  `hermes cron create --model <id> --provider anthropic --deliver <chat> "in 1m" "<full prompt>"`.
+  That job has no chat history and no clarify or messaging tools, so the prompt must stand alone.
+  A SOUL.md rule ("when the message holds K, create that job and say so") makes it automatic; it
+  is a Markdown-only change. Before you build, prove the model answers on the subscription with a
+  copy of the home: `HERMES_HOME=<scratch copy> hermes chat -q "Reply with exactly: ok" -m <id>
+  --provider anthropic -Q`.
+- **Resolve a model name before you assume what it is.** A name the owner gives next to a tool
+  ("Fable 5.2") can be a model, not the compiler or library you know. Grep the pinned source
+  first (`agent/usage_pricing.py`, `hermes_cli/models_catalog_static.py`, `agent/model_metadata.py`)
+  for the id and its price, and say plainly if an earlier reading was wrong.
 - Put mechanical work on the small model (subagents, titles, skill matching). Keep compression,
   the dangerous-command `approval` classifier (a guardrail), the post-turn review and every
   decision on the main model.

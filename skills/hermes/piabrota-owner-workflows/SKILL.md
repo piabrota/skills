@@ -136,8 +136,10 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
 - **A terminal call over 600 s becomes a background process** and `process_manage wait` is clamped
   to 180 s per call: for an omp run, start it, do the next file work (the next task file, the PR
   body), and end the turn when only the wait is left; the completion notice returns.
-- **Verify the PR after `gh pr create`:** `gh pr view <n> --json state,headRefName,files` and
-  `gh pr checks <n>`; report pending checks as pending.
+- **Verify the PR after `gh pr create`:** `gh pr view <n> --json
+  state,headRefName,headRefOid,additions,deletions,files` and `gh pr checks <n>`; report pending
+  checks as pending. Compare `headRefOid` with the commit you meant to push, and distrust a diff
+  that is nearly all deletions: a push hook can add commits to the branch (`references/other-owner-repos.md`).
 - **Never touch `.github/workflows`** (rule 2, no App permission, deny list). For a CI change,
   see "CI speed requests" below. omp may edit it anyway (a lint line, a new test step): after every run
   read `git status --short .github`, restore the file (`git checkout -- .github`) before the commit,
@@ -154,7 +156,9 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
 
 ## Other repositories of the owner (h0ffmann/*, marola-dev/*)
 
-For "add X to repo Y" outside nix-os, load `references/other-owner-repos.md`: read the repo's own hard rules first, copy them into the task file, and test on the repo's pinned toolchain as well as the box's. The same file has the two-PR route for piabrota/room (code there, then a nix-os pin bump).
+For "fetch the trails / places / boundaries from an API" for a marola or piabrota site, load `references/open-data-fetch.md`: vet the source's terms first, the Overpass recipe, the trail filter, the output shape.
+For a page that omp built, look at it in headless Chromium before the commit: `references/real-browser-check.md` and `scripts/cdp_check.mjs`.
+For "add X to repo Y" outside nix-os, or a rewrite of a repo in another stack (the fork route, a FACTS file, staged vendor libraries, runs A/B/C), load `references/other-owner-repos.md`: read the repo's own hard rules first, copy them into the task file, and test on the repo's pinned toolchain as well as the box's. The same file has the two-PR route for piabrota/room (code there, then a nix-os pin bump).
 
 ## Bulk English cleanup (ASD-STE100 across a repo)
 
