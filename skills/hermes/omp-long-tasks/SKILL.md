@@ -14,6 +14,21 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
   (command names, paths) the other tasks rely on. Two runs at once at most.
 - Put the contract of the sibling task in the task file and ask for a name check at the end (grep every command the specs use in the toolkit).
 
+- Give every task file the same skeleton: Goal; "Decisions (do not change)" with each choice already made
+  (names, limits, formats, headers, what is stored); Steps, each recorded in the absolute progress path before the
+  next; Rules (forbidden paths, forbidden commands, "add no package"); "How to prove it is done" with one command
+  chain. Without the Decisions block a run re-decides settled points and burns turns. A feature that cannot fit one
+  run goes in sequential runs of one layer each (core and API, then login and pages, then board tools and
+  hardening, then packaging, then docs, then checks); expect 70 to 105 turns and about $2 to $4 per run, and
+  commit and push each before the next starts.
+- When a task needs facts only the network gives (action SHAs, a pinned file's blob id), fetch them yourself with
+  `gh api`, write them to a file in `omp-tasks/`, and name that file in the task: omp has no `gh` or `curl`.
+
+## The wrapper cap beats `--max-time`
+- The `omp-run` wrapper wraps omp in `timeout 35m`, whatever `--max-time` says. Pass `--max-time 34m` at most, so omp can write its report before the kill. A job meant for 90 minutes is several runs of under 35.
+- Put in every task of a multi-step job: "after EACH finished step append one line to `<workspace>/omp-tasks/<name>.progress` before you start the next step; never end a step with a half-written module". Write the ABSOLUTE path: omp runs with the repo as its cwd, so a relative `omp-tasks/...` creates a stray directory inside the repo that `git add -A` would commit. A run killed at the cap or by an interruption then leaves a record of what is done.
+- A continuation task (`<name>-2.md`) points at the first task file for the decisions and rules, lists the state on disk that Hermes checked (files, line counts, what compiled, what is recorded and what is not), and orders the work: compile first, split any module that grew past about 500 lines, then the remaining steps. Do not repeat the whole spec.
+
 ## When a run stops at its limit
 - `omp stderr: [Stopped by SIGTERM]` means the time limit: no final report was written and the work may be half done.
   Check `git status`, then resume the same session: write the resume note as `omp-tasks/<name>.md` and run
@@ -40,6 +55,16 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
 
 ## Quirks
 - `omp-run <name>` reads `omp-tasks/<name>.md`: the run name and the task file name must be equal. A mismatch prints "no task file" and starts nothing, yet the background notice still says "completed normally" with exit code 0. The same exit code 0 comes after a time-limit stop. Read the last lines of the notice for `no task file`, `stopped by the time limit` or `[Stopped by SIGTERM]` before you say a run finished.
+- A proof script you start in the background must write its full output to a file INSIDE the script and print
+  only a `grep` summary at the end (counts, exit codes). A `| grep` on the command line leaves only the last ~2,000
+  characters in the completion notice, with the test counts cut off, and the output is not saved. Re-running
+  the whole proof to get the counts wastes minutes.
+- After every run, compare `git status --short` with the task's list of forbidden paths, not only with the
+  `??` lines. A generated file under a forbidden path (a catalog bundle that gained keys) may change by design:
+  read its diff, confirm it is only generated entries and that the repo's own generator check passes, and say so
+  in the report. Any other edit there is a slip: revert it.
+- A second completion notice for a background proof you already read from its output file is the same run
+  reported late: compare its counts with what you read and do not start the proof again.
 - After every run, `git status --short` and look for `??` lines: omp leaves scratch helpers (an eval `.nix`, a log) in the repo root. Delete them before the commit.
 - Run a toolkit's tests through the repo's own test entry (a Nix `passthru.tests` or check derivation), not the bare script: the entry sets the environment the script needs (the bare script exits 2 for a missing command) and also runs `shellcheck` and `dash -n` first. Write "run shellcheck on every shell script you write or change" in the task: a `ls | grep` in an omp-written test stopped the whole derivation before one check ran. The test count for a PR is the last `N checks, M failed` line of that derivation's log, taken after the final edit. When the inputs did not change since an omp run built it, your own `nix build` returns the cached success and prints no log: read the count from the output file (`tail <the store path that --print-out-paths gave>`) and say the build was reused.
 - Order a big task file so the docs come last, and list every doc file by name. A run cut by its limit loses the docs first, and a second run then needs the list to finish them (pt-BR file, its English mirror, the wiki pages, the skill reference, `.devin/wiki.json`, the `AGENTS.md` row).
@@ -50,6 +75,9 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
   "one slip" is your cue.
 - omp's bash policy blocks `curl *`: tell it to use `gh api` for reads; a script it writes may still call curl.
 - Stop a run with `omp-run --stop <name>` (hermes-omp step 3), never `pkill -f <pattern>`: through the terminal tool the pattern is in the shell's own command line, so it kills the very call that runs it, and it can match another run. Only on a box without `omp-run`, kill by PID.
+- When the completion notice is empty or has no report, the task's `.progress` file is the record: read it, then
+  `git status` and the diff stat, and re-run the checks yourself. A run may also start its own subagents; the
+  progress file names them.
 - The completion notice shows only the last ~2,000 characters of the stream, and the draft report file may never have been finalized. Read the file, then re-run the cheap proofs yourself (the suite, the eval, one measurement on the real box) before you write the PR body; take the numbers from your own run.
 - Hermes may not write `.github/workflows/`: have omp write a workflow as `scripts/<name>.workflow.yml`
   with a header telling the owner to copy it, and say so in the PR. Also write "never edit `.github/`" in
@@ -57,7 +85,7 @@ Extends `hermes-omp` (read-only, nix-os PR to change). Load both.
   test. After each run, `git status --short .github` before you commit; revert the file
   (`git checkout -- <file>`) and give the owner the lines to add in the PR body, or the push is refused.
 - A terminal call whose cwd is a nix-os worktree loads that repo's AGENTS.md into the context: use `git -C` or `workdir` outside the repo for plain commands.
-- To count active runs before a second start, `pgrep -fa "omp -p"` also matches the terminal call's own shell snapshot (a `bash -c source ...hermes-snap...` line): that line is the check itself, not a run. Count only lines that are an `omp` process.
+- To check whether a run is alive or to count runs before a second start, use `pgrep -fa "bin/omp"`. The wrapper starts `omp --append-system-prompt ...`, so `pgrep -fa "omp -p"` can show 0 for a live run, and it also matches the terminal call's own shell snapshot (a `bash -c source ...hermes-snap...` line), which is the check itself, not a run. Count only lines that are an `omp` process, and confirm with `process_manage poll` on the background session.
 - While a run edits a worktree, do not touch it (no edit, no `git add`): your change shows up in its `git diff` and in its report. Draft Markdown for the same PR in a scratch checkout of `main` or in `omp-tasks/`, and copy it in after the run ends.
 - `nix eval path:$PWD#...` works in a worktree where `git+file:` fails with 'object not found'.
 - When the owner corrects the target mid-run (for example 'I mean the main branch, not the releases'), stop the run, rewrite the task
