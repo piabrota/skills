@@ -83,3 +83,4 @@ hermes-omp: hermes-skill
 hermes-rig: hermes-skill
 kvm4-health: hermes-skill
 rbi: hermes-skill
+site-pins: hermes-skill
