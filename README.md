@@ -189,6 +189,7 @@ skills/
 ├── drawings/              # pen.nix and waza.nix, pure Nix
 ├── docs/drawings/         # waza.svg, waza.desmos.json, README.md
 ├── docs/awesome-skills.md # the 33 personal skill collections with the most stars
+├── docs/video-survey.md   # generative AI video with Claude: tools, models, voice clone
 ├── www/                   # the skill tags (tags.txt)
 ├── vendor/archify/        # git submodule, MIT
 ├── .devin/wiki.json       # the DeepWiki outline
