@@ -76,11 +76,11 @@ nixpkgs-tool-research: hermes-skill
 md-to-pdf-closed-source: hermes-skill
 piabrota-owner-workflows: hermes-skill
 update-skills: hermes-skill
-smart-notes: hermes-skill
-video-indexer: hermes-skill
 hermes-manim: hermes-skill
 hermes-omp: hermes-skill
 hermes-rig: hermes-skill
 kvm4-health: hermes-skill
+pirsig-smart-notes: hermes-skill
+pirsig-video-indexer: hermes-skill
 rbi: hermes-skill
 site-pins: hermes-skill
