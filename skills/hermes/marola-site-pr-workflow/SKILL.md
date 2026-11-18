@@ -83,6 +83,22 @@ add commits to the existing PR branch.
   a "Not proven" list (never run on the real host, real third-party login, load, limits of a scanner, versions that
   differ from the host's); then the owner-only steps as a numbered list. Recommend a squash merge when early
   commits hold an abandoned stack. Do not write "top", "best" or "secure".
+- `omp-run` that exits after 1 turn at `$0.0000` is not the task failing: omp's model call died. Read the
+  newest `/var/lib/hermes/.omp/logs/omp.<date>.*.log` (`grep cowork transport rejected` / `provider error`)
+  for the cause. A refused model call (for example a 403 from the API edge) kills EVERY turn until it clears:
+  retrying the same run twice is enough, then fall back to a hand edit of the smallest lines plus a repo lint
+  you run yourself, and say in the PR body that omp could not run.
+- When the owner reports the live site or a board as not updated, fetch the artifact's own timestamp
+  (`curl .../data/<area>/latest.json`, read `generated_at`) and compare it with the wall clock BEFORE
+  assuming the build failed. A healthy build can still carry yesterday's date: the boards timer fired
+  in UTC the previous local evening (`01:00 UTC` = `22:00 -03`), so `today` was wrong while everything
+  else was fresh. The fix is the `calendar` option in nix-os (`*-*-* 04,10,16,22:01:00 UTC` for 01:01,
+  07:01, 13:01, 19:01 America/Sao_Paulo; Brazil has no DST, so UTC offsets hold all year). Its merge is
+  the deploy; meanwhile the site self-corrects at the next local run.
+- Run each lint as its own command and trust its own exit code. After a pipe (`nixpkgs-fmt ... | tail -3`),
+  `$?` is the pipe's status, and a green `fmt=0` is tail's, not the linter's. And when every
+  `nix run nixpkgs#<tool>` fails with `cannot create symlink .../nix/flake-registry.json; already exists`,
+  move that 0-byte cache file aside (`mv` it, then rerun): nix wants to replace it with a symlink.
 - Name the real stack in the first reply when the owner's word differs from the code (a request for
   one language, a branch named for another): the PR looks empty or wrong until the net diff shows
   only the final stack.
