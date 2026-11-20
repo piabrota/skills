@@ -1,5 +1,5 @@
 ---
-name: smart-notes
+name: pirsig-smart-notes
 description: Turn what the owner says or sends into smart notes and send them to the pirsig brain as one pull request. Use when the owner asks to note, save, index or send ideas, a quote or a source to pirsig.
 disable-model-invocation: true
 ---
@@ -27,13 +27,13 @@ a rule here and that file differ, that file wins: read it with
    note. Never `approved`: only the owner gives it.
 5. **People.** A person who is not a public figure appears by nickname (`friend1`, `prof1`), never
    by name. No email addresses.
-6. **Link.** Call `pirsig_note_search` with the note's key words. Link to an existing note (its
+6. **Link.** Call `mcp__pirsig__pirsig_note_search` with the note's key words. Link to an existing note (its
    `stem`) or to another note of this call (its title), always with a reason you can defend. With
    no neighbour, write `proposed_link`: the note that should exist and why; the file marks it `⚠`.
    Never invent a link to fill the rule.
 7. **Tags.** Few, lowercase, with hyphens; reuse tags the brain already has. The tool adds
    `status/<status>` and `hermes`.
-8. **Show, then send.** Show the owner the titles, kinds and links. Call `pirsig_notes_submit` only
+8. **Show, then send.** Show the owner the titles, kinds and links. Call `mcp__pirsig__pirsig_notes_submit` only
    after the owner says to send, with `request` as one English sentence of what was asked.
 9. **Report.** Give the pull request URL and each `⚠`. The owner merges and runs
    `psg fork import brain`; you do neither.
