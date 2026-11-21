@@ -20,10 +20,16 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   simple verbs; one word per thing; at most three nouns in a row) and never say a tool approved
   the text. File content keeps its own language rule: a doc kept as `X.md` + `X.ptBR.md` is
   changed in both files in the same PR.
-- **Branches and pushes.** Branch `hermes/<goal-slug>` only; `git push origin hermes/<slug>` with
-  the branch named. Never merge, approve or close. Comments and issues you open end with the
-  signature line from SOUL.md; commits and PR bodies carry no agent trailer and no "Generated
-  with" line. Issues follow the same English-only, ASD-STE100 rule as PRs.
+- **Branches and pushes.** Branch `hermes/<goal-slug>` for your own work; on the owner's order you
+  may push to any branch, including a PR head that is a fork's default branch. Still never:
+  force-push, branch delete, a push to a branch a ruleset protects. While the deny list still names
+  branches, a push outside `hermes/*` blocks: do the work on a `hermes/*` branch and say the push
+  to the owner's branch waits on his merge of the deny-list change. Never merge, approve or close.
+  Every PR body names the model that performed the work (a `Model:` line, from the live routing
+  config); the owner's order. Comments and issues end with the signature line from SOUL.md, naming
+  the model that actually ran (read the live configuration, never a stale copy). Commits and PR
+  bodies carry no agent trailer and no "Generated with" line. Issues follow the same English-only,
+  ASD-STE100 rule as PRs.
 - **No secrets in output.** `gh auth status` echoes a masked token: check the login with
   `gh auth status 2>&1 | grep -i 'logged in'`.
 - **Good news opens with the owner's phrase** (see SOUL.md) and plain answers do not.
@@ -41,8 +47,8 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   the `check` recipe of the justfile and run each line except `nix flake check` through
   `nix run nixpkgs#<tool>` (`nixpkgs-fmt --check <the file list>`, `statix check .`,
   `deadnix --fail .`, `shellcheck`, the `jq` wiki check), with `export XDG_CACHE_HOME=<scratch>/nixcache`
-  first: the default cache holds a stuck `flake-registry.json` symlink and `nix run` stops with
-  "cannot create symlink". Read each exit code (`echo $?`), not the look of the output. A
+  first: the default cache holds a stuck `flake-registry.json` (a symlink or a zero-byte file) and
+  `nix run` stops with "cannot create symlink"; hit it mid-task, move the file aside and rerun. Read each exit code (`echo $?`), not the look of the output. A
   formatter failure from a hand or omp edit is fixed by running the formatter, then a separate
   commit. Never claim a lint or build that you did not run.
 - **Prove a fix on the real path, not on a model of it.** When a program starts the failing
@@ -97,7 +103,8 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   When `AGENTS.md` conflicts in many hunks that are only rewording, take main's file
   (`git checkout --theirs -- AGENTS.md`), then re-apply only your own additions, found with
   `git diff <merge-base> HEAD -- AGENTS.md`. A conflict in the owner's PR is a different
-  case (`references/omp-harness.md`).
+  case (`references/omp-harness.md`); when the PR's head is a fork's default branch, load
+  `references/pr-head-conflicts.md` first.
 - **Ship before you answer side questions.** When the owner interrupts a long task with another
   question, the owner assumes finished files are already a PR. Push and open the PR as soon as
   the files are done (or say plainly that it is staged and not pushed), and give the link in the
@@ -153,6 +160,11 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   After it: files changed, checks omp ran, checks you ran, what is unverified, run time, PR link.
   The owner finds the `hermes-omp` interface unclear, so name it ("omp made the edits") and never
   present omp's work as yours. Procedure: `references/omp-harness.md`; to wrap omp for another program, its section "Wrapping omp".
+  When `omp-run` exits 1 after one turn at $0.00, read the newest `~/.omp/logs/omp.<date>.*.log`:
+  an MCP-server warning is noise, but "cowork transport rejected" with a 403 is a model-provider
+  outage. Retry once; if it still dies at once, hand-edit the small change (a config value, a
+  sentence, a doc row), disclose it in the commit message and the PR body, and queue any real code
+  change for omp.
 
 ## Other repositories of the owner (h0ffmann/*, marola-dev/*)
 
@@ -296,8 +308,8 @@ For "review PR N" (with or without "add suggestions I can approve in 1 click"), 
 `references/pr-review-suggestions.md`: post one `COMMENT` review with `suggestion` blocks for
 small safe fixes, list decisions you cannot make for the owner, never approve. `hermes guide` checks the running install, not a diff: use it as a baseline of the box and review the diff with omp. For "review with
 OMP" use `references/omp-harness.md` (review-only run), and when the owner then says "fix it
-yourself", the same file and `pr-review-suggestions.md` give the stacked-PR route: you may push only
-`hermes/*`, so open a PR whose base is the owner's PR branch.
+yourself", the same file and `pr-review-suggestions.md` give the routes: on his order push to his
+PR branch directly; without it, open a PR whose base is the owner's PR branch.
 
 ## Moving a site or generator into nix-os
 
