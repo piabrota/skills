@@ -10,6 +10,11 @@ Use when the owner orders a change to `hermes/SOUL.md` (identity, voice, rules),
   and do not do it by another path (`terminal`, `execute_code`, `sed`).
 - Ask once with `clarify`. Name the file and the rule that changes, give the two choices (apply, or
   drop), and say what already applied. After a yes, repeat the same edit once.
+- When the `clarify` answer times out, do not block the delivery: commit and push with the files
+  that applied, and list every refused edit in the PR body as open items (file, old text, new
+  text). One "yes" in chat or on the PR unblocks a single follow-up commit. A refusal is per file:
+  `hermes/dangerous-patterns.yaml`, the docs and the memory files are not gated and apply at once;
+  `SOUL.md` and the `AGENTS.md` files are.
 - Edits in one file are gated one by one: a small edit can apply while the guardrail edit is
   refused. Run `git diff` on the file, tell the owner the file is half edited and not committed, and
   commit only when the whole change is in or the owner chose to drop it.

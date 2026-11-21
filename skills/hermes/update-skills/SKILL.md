@@ -133,6 +133,7 @@ Give the pull request URL, the checks with their results, each warning, and what
 ## Pitfalls
 
 - A cron job can fail with nobody told. Its `Deliver` target `origin` can be a local chat that no one reads (`hermes cron list` then says "ran, but the result was not delivered"). `hermes cron run <id>` from the CLI cannot deliver and prints "failed" even when the script succeeded: read `~/.hermes/cron/output/<id>/<latest>.md`. After a time the owner expects an export, check `hermes cron list` (Last run) and that file. Set delivery with `hermes cron edit <id> --deliver discord --failure-deliver discord`.
+- "Why was there no export pull request?" is answered from the run records, not from the PR list. The job runs daily and opens a PR only on a diff. Read three things: the job's Last run in `hermes cron list`, the day's record `~/.hermes/cron/output/<job-id>/<date>.md` (a no-diff day reads `Status: silent (empty output)`), and the newest merged export PR on piabrota/skills, which dates the last real export. A "late" dispatch inside the job's grace is on time for this question; say the job ran and stayed silent because no skill changed.
 
 - A body over 150 lines costs tokens in each use. Split it into `references/` files.
 - Before you create a skill, search the `references/` of the existing skills for the same topic. The background review often files a recipe there. Move the content into the new skill and leave a one-line pointer, so one topic has one home.
