@@ -10,8 +10,10 @@ Porting the page to F# with Fable: read `references/fsharp-fable-rewrite.md` (to
 Checking the built page in a browser (the only proof that it runs): `references/browser-check.md`.
 The .NET server, its headers and its pitfalls (run C): `references/dotnet-server.md`.
 
-Work lives in the fork `piabrota/marola-site` (remote `fork`), branch `hermes/*`. The owner pushes to
-`marola-dev` himself. Keep ONE PR open (the owner finds two confusing). A branch cannot be renamed:
+Work lives in the fork `piabrota/marola-site` (remote `fork`). Name Hermes's own branches `hermes/*`;
+pushes to any branch are allowed now (the deny list still blocks force-push, branch delete, mirror
+and `--tags` pushes and every `gh` write, and a ruleset guards the default branch). The owner pushes
+to `marola-dev` himself. Keep ONE PR open (the owner finds two confusing). A branch cannot be renamed:
 add commits to the existing PR branch.
 
 ## Rules learned
@@ -64,7 +66,8 @@ add commits to the existing PR branch.
 - omp may touch a forbidden-looking file when a repo generator rewrites it (`site/static/i18n.js`, `golden.json`,
   `nix/deps.json`). Read that diff: accept it only when it holds exactly the new generated keys or entries, and
   name the generator exception in the next task's rules so the run does not hide it.
-- Screenshots cannot go to the `pr-screenshots` branch (token pushes only `hermes/*`).
+- The token pushed only `hermes/*` before the any-branch push rule; other branches push now, but a
+  commit that changes `.github/workflows/**` never does (the App token has no `workflows` scope).
 - After a stack change the PR description is stale, and the deny list blocks both `gh pr edit` and
   `gh api -X PATCH` on a PR body. Do not look for another route: post the new description as a
   signed `gh pr comment --body-file` that starts with "the description above is out of date", and
@@ -102,3 +105,16 @@ add commits to the existing PR branch.
 - Name the real stack in the first reply when the owner's word differs from the code (a request for
   one language, a branch named for another): the PR looks empty or wrong until the net diff shows
   only the final stack.
+- Resolving a cross-repo PR's conflicts (the owner opened it with this fork's `main` as head into
+  `marola-dev`): clone the fork, add upstream as a second remote, branch off, and merge upstream
+  `main`. Resolve every conflict on the UPSTREAM side — upstream carried the same work and moved
+  past it — then audit what the fork loses BY READING, not by a grep count (the owner distrusts
+  grep-only claims): `git diff origin2/main HEAD --name-only` over the resolved tree lists the
+  fork content that auto-merge kept; decide each against upstream's deliberate deletions.
+- A merge commit cannot carry `.github/workflows` changes: GitHub refuses the push. Resolve the
+  workflow files back to the branch's own state inside the merge commit — GitHub's own merge of
+  the PR then takes upstream's untouched workflows, so the final state is still correct. Verify
+  `git diff HEAD^1 HEAD --name-only | grep workflows` is empty before pushing.
+- Deliver the resolution as a PR on the fork whose base is the fork's `main`; merging it moves the
+  cross-repo PR's head and clears its conflicts. Recommend a squash of the cross-repo PR when its
+  history holds polluted commits.
