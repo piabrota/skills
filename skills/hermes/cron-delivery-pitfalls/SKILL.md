@@ -24,6 +24,11 @@ Adds to `hermes-cron` (read-only here). Learned on 2026-11-05 from the `skills-e
 - A `.sh` cron script runs as `bash <file>` with the PATH of the `hermes-agent` unit. That PATH lacks `awk` and
   `perl`. Add `export PATH="$PATH:/run/current-system/sw/bin"` near the top, and fail early with a clear line
   when a needed tool is missing. Test with `env -i HOME=/var/lib/hermes PATH=<unit PATH> bash script`.
+- A `no_agent` script job that exits 0 with no output is recorded as `silent (empty output)` in
+  `~/.hermes/cron/output/<id>/<date>.md`: a run that found nothing to send, not a missed run. When
+  the owner reports such a job as not happening, read that file, then run the script by hand
+  (`sh ~/.hermes/scripts/<name>.sh`) — it opens its PR when a diff exists — and compare the local
+  source's mtime with the last export branch name before calling it a bug.
 - A script in `~/.hermes/scripts/` is a hand copy. Keep the master in nix-os (`hermesHomeFiles`, see
   `hermes/scripts/export-skills.sh`), or a rebuild loses the fix.
 
