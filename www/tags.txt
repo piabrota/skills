@@ -76,6 +76,7 @@ nixpkgs-tool-research: hermes-skill
 md-to-pdf-closed-source: hermes-skill
 piabrota-owner-workflows: hermes-skill
 update-skills: hermes-skill
+hermes-dsh: hermes-skill
 hermes-manim: hermes-skill
 hermes-omp: hermes-skill
 hermes-rig: hermes-skill

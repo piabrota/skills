@@ -98,6 +98,27 @@ add commits to the existing PR branch.
   else was fresh. The fix is the `calendar` option in nix-os (`*-*-* 04,10,16,22:01:00 UTC` for 01:01,
   07:01, 13:01, 19:01 America/Sao_Paulo; Brazil has no DST, so UTC offsets hold all year). Its merge is
   the deploy; meanwhile the site self-corrects at the next local run.
+- The site's content comes from the nix-os pin (`marola-site/default.nix`), so a merge into
+  `marola-dev` reaches nothing until a nix-os merge deploys it. Diagnose in this order: the newest
+  `/nix/var/nix/profiles/system-*` mtime on the box (when it last switched), the service's
+  `ExecStart` store path and `ActiveEnterTimestamp` (a new path plus a fresh timestamp mean the
+  new build is live), then the live artifact itself. GitHub's `prod` environment runs ONE
+  deployment at a time: pushes a few minutes apart cancel the earlier deploy runs and only the
+  last one lands, and a full build takes 15–20 minutes — so "it did not refresh" right after fast
+  merges means the run is still in flight. Report the timestamps instead of guessing.
+- A client-rendered page cannot be verified from the served HTML: the nav is drawn by the Elm
+  bundle after load. Check the deployed bundle in its store path for the nav keys, the `i18n/*.json`
+  catalogs for their labels (fetch one live), and that the HTML's asset hash names that same bundle
+  file. Then say plainly that a browser is the last proof and that a page fetched before the switch
+  needs a hard reload.
+- When a CI job is called slow, find the expensive step before proposing anything: a report job
+  that builds the whole system closure pays minutes for a build it does not need. Tools that parse
+  `.drv` files (vulnix does) work on the derivation closure — `nix eval --raw
+  .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath` then `nix-store -qR` — which
+  skips the build and the multi-GB cache restore; note that the `.drv` closure is wider (build
+  inputs included), which is acceptable for a report and must be said out loud. A commit that
+  changes `.github/workflows/**` cannot be pushed (no `workflows` scope), so deliver the exact
+  replacement YAML to the owner instead.
 - Run each lint as its own command and trust its own exit code. After a pipe (`nixpkgs-fmt ... | tail -3`),
   `$?` is the pipe's status, and a green `fmt=0` is tail's, not the linter's. And when every
   `nix run nixpkgs#<tool>` fails with `cannot create symlink .../nix/flake-registry.json; already exists`,
