@@ -18,8 +18,21 @@ add commits to the existing PR branch.
 
 ## Rules learned
 
-- Commit trailers: `Tested:`, `Co-Authored-By: Claude <noreply@anthropic.com>`, and `MIP: none — <reason>`.
-  The MIP trailer needs an EM DASH or the pre-push hook fails. Write the message to a file, `git commit -F`.
+- Commit trailers: the repo asks for `Tested:` and `Co-Authored-By: Claude`; Hermes's own rule
+  forbids the agent trailer, so write `Tested:` (and `MIP: none — <reason>` when `site/static/**`
+  changes) and nothing else. The MIP trailer needs an EM DASH or the pre-push hook fails. Write the
+  message to a file, `git commit -F`. The hook's trailer check reads `origin/main..HEAD` when the
+  devkit hook does not hand it the pushed refs: in the fork clone that range is the fork's whole
+  history, so upstream's own `site/static` commits fail YOUR push. Point the tracking ref at
+  upstream for the check (`git update-ref refs/remotes/origin/main origin2/main`), put
+  `MIP: none — <reason>` on a merge commit that touches `site/static`, then push and set the ref back
+  if you need the fork's own base again.
+- The push hook runs `just prepush` (trailer check plus `just quality`), so push from inside a dev
+  shell: `nix develop <path> -c git push origin <branch>`. If the branch's own flake lacks what the
+  gate needs — an Elm version `elm.json` pins while nixpkgs ships another, a system library a
+  Haskell package links through pkg-config — borrow the shell of the branch that carries the fixes:
+  `git worktree add ../shell <that-branch>`, then `nix develop ../shell -c git push …` from the
+  target checkout. Fix the dev shell in the same PR when it makes the gate runnable again.
 - The pre-push hook runs `just quality`. Git sets `GIT_DIR` inside a hook. A self-test that runs
   `git init`/`commit` in a scratch repo then hits the REAL repo, and the push carries the fixture commits
   (author `t <t@t>`). Fixed on the PR branch in `scripts/mip-trailer-check.sh` (isolate_git_env and
@@ -106,6 +119,13 @@ add commits to the existing PR branch.
   deployment at a time: pushes a few minutes apart cancel the earlier deploy runs and only the
   last one lands, and a full build takes 15–20 minutes — so "it did not refresh" right after fast
   merges means the run is still in flight. Report the timestamps instead of guessing.
+- The area picker reads `/data/areas.json`, and the server prefers the board folder over the
+  package. That file must come from the package (the pin's `site/areas.json`) and every other
+  `/data/<x>` from `MAROLA_DATA`; when a new area is missing from the picker, read which copy is
+  served before blaming the build. The board build rebuilds every area, so each new area raises
+  its wall time: a run killed at the unit's `TimeoutStartSec` says so in the journal (`Consumed …
+  CPU time over … wall` at exactly the limit), and raising the limit in the nix-os module is the
+  fix — the timer will kill it again until that merges.
 - A client-rendered page cannot be verified from the served HTML: the nav is drawn by the Elm
   bundle after load. Check the deployed bundle in its store path for the nav keys, the `i18n/*.json`
   catalogs for their labels (fetch one live), and that the HTML's asset hash names that same bundle
@@ -139,3 +159,15 @@ add commits to the existing PR branch.
 - Deliver the resolution as a PR on the fork whose base is the fork's `main`; merging it moves the
   cross-repo PR's head and clears its conflicts. Recommend a squash of the cross-repo PR when its
   history holds polluted commits.
+- When the cross-repo PR reads as an enormous diff, the fork's `main` is simply behind upstream:
+  merge upstream `main` into the branch (a clean `git merge` is normal once the fork already carries
+  an earlier resolution — check for `CONFLICT` lines, not for a clean result), reset `.github/workflows`
+  to `HEAD^1`, and verify `git diff origin2/main HEAD --name-only` lists only those files. Open a PR
+  on the fork whose merge makes the fork equal to upstream; the cross-repo PR then has nothing to
+  bring and the owner closes or merges it as a no-op. Say that in the body, with the one file that
+  still differs.
+- Before you promise a push or a `gh pr create` on `marola-dev`, check the credential path: the
+  helper's `HERMES_GIT_MAROLA_REPOS` allowlist covers only the OpenRig marola repositories, and
+  `/run/hermes-github/` holds one token file per installed owner (`ls`, no content). A missing
+  token for that org means reads work (public) and writes fail with "could not read Username": the
+  route is the fork plus the owner's push, or the App installed on the org — say which, do not retry.
