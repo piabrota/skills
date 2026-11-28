@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Porting the page to F# with Fable: read `references/fsharp-fable-rewrite.md` (toolchain, test shape, how to feed omp, porting the other pages).
 Checking the built page in a browser (the only proof that it runs): `references/browser-check.md`.
+When the org has no token and the fork refuses your branch, the deliverable is a stack of patches and
+PR bodies: `references/patch-delivery.md`.
 The .NET server, its headers and its pitfalls (run C): `references/dotnet-server.md`.
 
 Work lives in the fork `piabrota/marola-site` (remote `fork`). Name Hermes's own branches `hermes/*`;
@@ -32,7 +34,10 @@ add commits to the existing PR branch.
   gate needs — an Elm version `elm.json` pins while nixpkgs ships another, a system library a
   Haskell package links through pkg-config — borrow the shell of the branch that carries the fixes:
   `git worktree add ../shell <that-branch>`, then `nix develop ../shell -c git push …` from the
-  target checkout. Fix the dev shell in the same PR when it makes the gate runnable again.
+  target checkout. Fix the dev shell in the same PR when it makes the gate runnable again. A fresh
+  dev shell may also need `cabal update` once before `just back-test` solves; without it the gate
+  stops with "Could not resolve dependencies", which reads like the brotli failure but is the
+  missing Hackage index.
 - The pre-push hook runs `just quality`. Git sets `GIT_DIR` inside a hook. A self-test that runs
   `git init`/`commit` in a scratch repo then hits the REAL repo, and the push carries the fixture commits
   (author `t <t@t>`). Fixed on the PR branch in `scripts/mip-trailer-check.sh` (isolate_git_env and
@@ -81,6 +86,10 @@ add commits to the existing PR branch.
   name the generator exception in the next task's rules so the run does not hide it.
 - The token pushed only `hermes/*` before the any-branch push rule; other branches push now, but a
   commit that changes `.github/workflows/**` never does (the App token has no `workflows` scope).
+  A branch built on upstream `main` cannot enter a stale fork at all, even when its own commit
+  touches no workflow file: its ancestry carries upstream's workflow commits, which the fork does
+  not have, so GitHub refuses the push with the same `workflows` error. That case ends in patches
+  to the owner, not in a fork PR.
 - After a stack change the PR description is stale, and the deny list blocks both `gh pr edit` and
   `gh api -X PATCH` on a PR body. Do not look for another route: post the new description as a
   signed `gh pr comment --body-file` that starts with "the description above is out of date", and
@@ -126,6 +135,11 @@ add commits to the existing PR branch.
   its wall time: a run killed at the unit's `TimeoutStartSec` says so in the journal (`Consumed …
   CPU time over … wall` at exactly the limit), and raising the limit in the nix-os module is the
   fix — the timer will kill it again until that merges.
+- The contact form writes to the site's SQLite database; nothing is emailed. Read a submission as
+  root: the server path from `systemctl cat marola-site`, then
+  `MAROLA_DB=/var/lib/marola/marola.db <that path> inbox`, with `--delete <id>` to remove one. The
+  data directory is closed to `hermes`, so the answer to "where do I read the message" is that
+  command, never a read of the file.
 - A client-rendered page cannot be verified from the served HTML: the nav is drawn by the Elm
   bundle after load. Check the deployed bundle in its store path for the nav keys, the `i18n/*.json`
   catalogs for their labels (fetch one live), and that the HTML's asset hash names that same bundle

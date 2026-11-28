@@ -85,7 +85,11 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   section for the added change), then comment on the other PR that it now lives in the first and
   the owner should close it (you cannot); never point a base at another `hermes/*` branch. Stack
   only on the owner's own PR branch (see `references/pr-review-suggestions.md`),
-  and re-check that base's state before you report the stacked PR as delivered. Before the push,
+  and re-check that base's state before you report the stacked PR as delivered. The owner's own order
+  "make N PRs stacked" overrides this: then base PR 2 on PR 1's branch, write in PR 2's body that its
+  base moves to `main` after PR 1 merges, and after that merge rebase it onto `main`
+  (`git rebase --onto origin/main <PR 1 head> <branch>`) — a stacked PR whose base merged unrebased
+  never reaches `main`. Before the push,
   `git fetch origin main`: a shallow clone does not know the owner merged another PR meanwhile, and
   a PR from the old base then reverts that work. Move the branch with `git rebase --onto origin/main
   <last commit of the old base> <branch>` (a plain rebase replays merged commits and conflicts), then
