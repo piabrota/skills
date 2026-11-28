@@ -26,9 +26,14 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   branches, a push outside `hermes/*` blocks: do the work on a `hermes/*` branch and say the push
   to the owner's branch waits on his merge of the deny-list change. Never merge, approve or close.
   Every PR body names the model that performed the work (a `Model:` line, from the live routing
-  config); the owner's order. Comments and issues end with the signature line from SOUL.md, naming
-  the model that actually ran (read the live configuration, never a stale copy). Commits and PR
-  bodies carry no agent trailer and no "Generated with" line. Issues follow the same English-only,
+  config); the owner's order. Close the body with that footer: the model, the tool that made the
+  edits (`omp`, or `hand edits` and the reason), then the gate that passed, and the signature line
+  with the model that actually ran and the date. Write only a gate that ran. Comments and issues end
+  with the same signature line from SOUL.md, naming the model that actually ran (read the live
+  configuration, never a stale copy: SOUL.md's identity lines lag a model switch). Commits and PR
+  bodies carry no agent trailer and no "Generated with" line. When the rule belongs in SOUL.md and
+  the approval gate blocks that file, write the exact text, hand it to the owner, and keep following
+  it meanwhile — do not route the edit around the gate. Issues follow the same English-only,
   ASD-STE100 rule as PRs.
 - **No secrets in output.** `gh auth status` echoes a masked token: check the login with
   `gh auth status 2>&1 | grep -i 'logged in'`.
@@ -80,7 +85,11 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   section for the added change), then comment on the other PR that it now lives in the first and
   the owner should close it (you cannot); never point a base at another `hermes/*` branch. Stack
   only on the owner's own PR branch (see `references/pr-review-suggestions.md`),
-  and re-check that base's state before you report the stacked PR as delivered. Before the push,
+  and re-check that base's state before you report the stacked PR as delivered. The owner's own order
+  "make N PRs stacked" overrides this: then base PR 2 on PR 1's branch, write in PR 2's body that its
+  base moves to `main` after PR 1 merges, and after that merge rebase it onto `main`
+  (`git rebase --onto origin/main <PR 1 head> <branch>`) — a stacked PR whose base merged unrebased
+  never reaches `main`. Before the push,
   `git fetch origin main`: a shallow clone does not know the owner merged another PR meanwhile, and
   a PR from the old base then reverts that work. Move the branch with `git rebase --onto origin/main
   <last commit of the old base> <branch>` (a plain rebase replays merged commits and conflicts), then
@@ -164,7 +173,9 @@ Standing rules and procedures for work done as piabrota-hermes[bot] on the owner
   an MCP-server warning is noise, but "cowork transport rejected" with a 403 is a model-provider
   outage. Retry once; if it still dies at once, hand-edit the small change (a config value, a
   sentence, a doc row), disclose it in the commit message and the PR body, and queue any real code
-  change for omp.
+  change for omp. "No default model selected" or "Set an API key environment variable" is a
+  different case: the wrapper's key never reached the process (a sandbox can strip it), so no retry
+  fixes it — hand-edit with disclosure and tell the owner which key is missing, never print it.
 
 ## Other repositories of the owner (h0ffmann/*, marola-dev/*)
 
